@@ -1,34 +1,25 @@
-defmodule Membrane.Template.Mixfile do
+defmodule AbrTranscoder.MixProject do
   use Mix.Project
-
-  @version "0.1.0"
-  @github_url "https://github.com/membraneframework/membrane_template_plugin"
 
   def project do
     [
-      app: :membrane_template_plugin,
-      version: @version,
-      elixir: "~> 1.13",
+      app: :abr_transcoder,
+      version: "0.1.0",
+      elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      compilers: extra_compilers() ++ Mix.compilers(),
       deps: deps(),
       dialyzer: dialyzer(),
-
-      # hex
-      description: "Template Plugin for Membrane Multimedia Framework",
-      package: package(),
-
-      # docs
-      name: "Membrane Template plugin",
-      source_url: @github_url,
       docs: docs()
     ]
   end
 
-  def application do
-    [
-      extra_applications: []
-    ]
+  defp extra_compilers do
+    case Mix.target() do
+      :host -> []
+      target when target in [:xilinx, :nvidia] -> [:unifex, :bundlex]
+    end
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -36,10 +27,22 @@ defmodule Membrane.Template.Mixfile do
 
   defp deps do
     [
-      {:membrane_core, "~> 0.10.0"},
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
-      {:credo, ">= 0.0.0", only: :dev, runtime: false}
+      {:membrane_core, "~> 0.12"},
+      {:unifex, "~> 1.1"},
+      {:membrane_h264_format, "~> 0.5.0"},
+      {:membrane_raw_video_format, "~> 0.3.0"},
+      {:membrane_h264_plugin, "~> 0.5.0"},
+
+      # dev dependencies
+      {:typed_struct, "~> 0.3", runtime: false},
+      {:credo, "~> 1.4", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
+
+      # test depenencies
+      {:membrane_file_plugin, "~> 0.15.0", only: :test},
+      {:membrane_flv_plugin, "~> 0.7.0", only: :test},
+      {:membrane_tee_plugin, "~> 0.11.0", only: :test}
     ]
   end
 
@@ -56,24 +59,11 @@ defmodule Membrane.Template.Mixfile do
     end
   end
 
-  defp package do
-    [
-      maintainers: ["Membrane Team"],
-      licenses: ["Apache-2.0"],
-      links: %{
-        "GitHub" => @github_url,
-        "Membrane Framework Homepage" => "https://membraneframework.org"
-      }
-    ]
-  end
-
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "LICENSE"],
-      formatters: ["html"],
-      source_ref: "v#{@version}",
-      nest_modules_by_prefix: [Membrane.Template]
+      extras: ["README.md"],
+      formatters: ["html"]
     ]
   end
 end
