@@ -27,12 +27,10 @@ defmodule AbrTranscoder.MixProject do
 
   defp deps do
     [
-      {:common_media_transport, "~> 1.0", organization: "vstream"},
       {:membrane_core, "~> 0.12"},
       {:unifex, "~> 1.1"},
       {:membrane_h264_format, "~> 0.6.1"},
       {:membrane_raw_video_format, "~> 0.3.0"},
-      {:membrane_h264_plugin, "~> 0.7.2"},
 
       # dev dependencies
       {:typed_struct, "~> 0.3", runtime: false},
@@ -41,6 +39,7 @@ defmodule AbrTranscoder.MixProject do
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
 
       # test depenencies
+      {:membrane_h264_plugin, "~> 0.7.2", only: :test},
       {:membrane_file_plugin, "~> 0.15.0", only: :test},
       {:membrane_flv_plugin, "~> 0.9.0", only: :test},
       {:membrane_tee_plugin, "~> 0.11.0", only: :test}

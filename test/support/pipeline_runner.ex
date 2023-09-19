@@ -39,6 +39,7 @@ defmodule ABRTranscoder.PipelineRunner do
         gap_positions: gap_positions,
         gap_size: gap_size
       })
+      |> child({:parser, :source}, %Membrane.H264.Parser{output_stream_structure: :annexb})
       |> child(:tee, Membrane.Tee.Parallel)
       |> child(:abr_transcoder, %ABRTranscoder{
         original_stream: original_stream,
@@ -49,7 +50,6 @@ defmodule ABRTranscoder.PipelineRunner do
         on_frame_process_end: fn -> :ok end
       }),
       get_child(:tee)
-      |> child({:parser, :source}, parser())
       |> child(:sink_source, Testing.Sink)
     ]
 
@@ -57,7 +57,7 @@ defmodule ABRTranscoder.PipelineRunner do
       for {_stream, idx} <- Enum.with_index(target_streams) do
         get_child(:abr_transcoder)
         |> via_out(Pad.ref(:output, idx))
-        |> child({:parser, idx}, parser())
+        |> child({:parser, idx}, Membrane.H264.Parser)
         |> child(sink_name(idx), Testing.Sink)
       end
 
@@ -72,11 +72,5 @@ defmodule ABRTranscoder.PipelineRunner do
     end
 
     pipeline
-  end
-
-  defp parser() do
-    %Membrane.H264.Parser{
-      output_stream_structure: :avc3
-    }
   end
 end

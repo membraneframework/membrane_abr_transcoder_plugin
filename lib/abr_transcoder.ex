@@ -31,17 +31,16 @@ defmodule ABRTranscoder do
 
   require Logger
 
-  alias Membrane.H264.Parser.DecoderConfigurationRecord
+  alias Membrane.H264
 
   def_input_pad :input,
     demand_mode: :auto,
-    demand_unit: :buffers,
-    accepted_format: _any
+    accepted_format: %H264{alignment: :au, stream_structure: :annexb}
 
   def_output_pad :output,
     demand_mode: :auto,
     availability: :on_request,
-    accepted_format: %Membrane.H264{}
+    accepted_format: %H264{alignment: :au, stream_structure: :annexb}
 
   def_options original_stream: [
                 spec: __MODULE__.StreamParams.t(),
@@ -139,28 +138,12 @@ defmodule ABRTranscoder do
   end
 
   @impl true
-  def handle_stream_format(
-        :input,
-        %Membrane.H264{alignment: alignment, stream_structure: {:avc3, dcr}},
-        ctx,
-        state
-      ) do
+  def handle_stream_format(:input, %H264{}, ctx, state) do
     %State{
       backend: %backend{} = backend_config,
       original_stream: original_stream,
       target_streams: target_streams
     } = state
-
-    unless dcr do
-      raise "Empty decoder configuration record"
-    end
-
-    %DecoderConfigurationRecord{
-      spss: spss,
-      ppss: ppss
-    } = DecoderConfigurationRecord.parse(dcr)
-
-    sps_and_pps = Enum.map_join(spss ++ ppss, &(<<0, 0, 1>> <> &1))
 
     start = System.monotonic_time(:millisecond)
 
@@ -174,7 +157,6 @@ defmodule ABRTranscoder do
         Logger.info("Transcoder initialized in #{stop - start}ms")
 
         state.on_successful_init.()
-        backend.update_sps_and_pps(sps_and_pps, transcoder_ref)
 
         Membrane.ResourceGuard.register(ctx.resource_guard, fn ->
           # this flush will only take effect on pipeline's non-normal shutdown
@@ -190,10 +172,9 @@ defmodule ABRTranscoder do
         actions =
           state.target_streams
           |> Enum.with_index()
-          |> Enum.map(fn {_stream, idx} ->
-            {:stream_format,
-             {Pad.ref(:output, idx),
-              %Membrane.H264{alignment: alignment, stream_structure: :annexb}}}
+          |> Enum.map(fn {stream, idx} ->
+            format = %H264{alignment: :au, width: stream.width, height: stream.height}
+            {:stream_format, {Pad.ref(:output, idx), format}}
           end)
 
         {actions, state}
