@@ -79,10 +79,10 @@ RUN git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg/ \
 
 # Install necessary dependencies for building erlang and elixir (via asdf)
 RUN apt-get update \
- && apt-get install -y software-properties-common \
- && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
- && apt-get update \
- && apt-get install -y \
+    && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
+    && apt-get update \
+    && apt-get install -y \
     autoconf \
     clang-format \
     libglib2.0-dev \
@@ -95,15 +95,15 @@ RUN apt-get update \
     locales \
     unixodbc-dev \
     pkg-config \
- && rm -rf /var/lib/apt/lists/* \
- && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
- && git clone https://github.com/asdf-vm/asdf.git /root/.asdf -b v0.8.0
+    && rm -rf /var/lib/apt/lists/* \
+    && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
+    && git clone https://github.com/asdf-vm/asdf.git /root/.asdf -b v0.8.0
 
 ENV PATH /root/.asdf/bin:/root/.asdf/shims:$PATH
 
 # Erlang
 RUN apt-get update \
- && apt-get install -y \
+    && apt-get install -y \
     autoconf \
     build-essential \
     fop \
@@ -115,25 +115,26 @@ RUN apt-get update \
     m4 \
     unixodbc-dev \
     xsltproc \
- && rm -rf /var/lib/apt/lists/* \
- && asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git \
- && asdf install erlang 25.2.3 \
- && asdf global erlang 25.2.3 \
- && rm -rf /tmp/*
+    && rm -rf /var/lib/apt/lists/* \
+    && asdf plugin-add erlang https://github.com/asdf-vm/asdf-erlang.git \
+    && asdf install erlang 26.1 \
+    && asdf global erlang 26.1 \
+    && rm -rf /tmp/*
 
 # Elixir
 RUN asdf plugin-add elixir https://github.com/asdf-vm/asdf-elixir.git \
- && asdf install elixir 1.14.3-otp-25 \
- && asdf global elixir 1.14.3-otp-25 \
- && mix local.hex --force \
- && mix local.rebar --force \
- && rm -rf /tmp/*
+    && asdf install elixir 1.15.7-otp-26 \
+    && asdf global elixir 1.15.7-otp-26 \
+    && mix local.hex --force \
+    && mix local.rebar --force \
+    && rm -rf /tmp/*
+
 
 # Make sure we are using Nvidia target when building the transcoder
 ENV MIX_TARGET=nvidia
 
 RUN mix local.hex --force \
- && mix local.rebar --force
+    && mix local.rebar --force
 
 # Set necessary paths when linking with FFmpeg
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig/pkgconfig:/usr/lib/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig/:$PKG_CONFIG_PATH

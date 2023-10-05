@@ -48,7 +48,12 @@ defmodule BroadcastEngine.ABRTranscoder.BundlexProject do
               "nvidia/nvidia_encoding_pipeline.cpp",
               "nvidia/nvidia_timestamp_emitter.cpp"
             ],
-            pkg_configs: ["libavcodec", "libavfilter", "libavutil"],
+            os_deps: [
+              ffmpeg: [
+                # {:precompiled, get_ffmpeg_url(), ["libavcodec", "libavfilter", "libavutil"]},
+                {:pkg_config, ["libavcodec", "libavfilter", "libavutil"]}
+              ]
+            ],
             preprocessor: Unifex,
             language: :cpp,
             compiler_flags: [
@@ -60,6 +65,29 @@ defmodule BroadcastEngine.ABRTranscoder.BundlexProject do
 
       :host ->
         []
+    end
+  end
+
+  defp get_ffmpeg_url() do
+    membrane_precompiled_url_prefix =
+      "https://github.com/membraneframework-precompiled/precompiled_ffmpeg/releases/latest/download/ffmpeg"
+
+    case Bundlex.get_target() do
+      %{architecture: "aarch64", os: "linux"} ->
+        {:precompiled,
+         "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n6.0-latest-linuxarm64-gpl-shared-6.0.tar.xz"}
+
+      %{os: "linux"} ->
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n6.0-latest-linux64-gpl-shared-6.0.tar.xz"
+
+      %{architecture: "x86_64", os: "darwin" <> _rest_of_os_name} ->
+        "#{membrane_precompiled_url_prefix}_macos_intel.tar.gz"
+
+      %{architecture: "aarch64", os: "darwin" <> _rest_of_os_name} ->
+        "#{membrane_precompiled_url_prefix}_macos_arm.tar.gz"
+
+      _other ->
+        nil
     end
   end
 end

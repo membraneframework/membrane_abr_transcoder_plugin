@@ -376,9 +376,4 @@ defmodule ABRTranscoder do
 
     :ok
   end
-
-  defp to_annex_b(<<length::32, data::binary-size(length), rest::binary>>, acc),
-    do: to_annex_b(rest, [acc, [<<0, 0, 1>>, data]])
-
-  defp to_annex_b(<<>>, acc), do: IO.iodata_to_binary(acc)
 end
