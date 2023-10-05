@@ -1,7 +1,6 @@
 defmodule ABRTranscoder.FrameGapInserter do
   @moduledoc """
-  Membrane filter used for generating `Common.MediaTransport.DroppedVideoFramesEvent` at specified
-  buffer positions.
+  Membrane filter used for inserting timestamps gap at specified buffer positions.
 
   It is useful for testing the behavior of the transcoder when the input stream contains
   frame gaps so that to ensure the transcoded frames have proper timestamps.
@@ -51,15 +50,10 @@ defmodule ABRTranscoder.FrameGapInserter do
       gap_size: gap_size
     } = state
 
-    {offset, actions} =
+    offset =
       case List.keyfind(gap_positions, frame_num, 0) do
-        {_frame_num, gap} ->
-          event = [event: {:output, %Common.MediaTransport.DroppedVideoFramesEvent{frames: gap}}]
-
-          {offset + gap * gap_size, event}
-
-        nil ->
-          {offset, []}
+        {_frame_num, gap} -> offset + gap * gap_size
+        nil -> offset
       end
 
     buffer = %Membrane.Buffer{buffer | dts: buffer.dts + offset, pts: buffer.pts + offset}
@@ -69,6 +63,6 @@ defmodule ABRTranscoder.FrameGapInserter do
       |> Map.update!(:total_frames, &(&1 + 1))
       |> Map.put(:offset, offset)
 
-    {actions ++ [buffer: {:output, buffer}], state}
+    {[buffer: {:output, buffer}], state}
   end
 end

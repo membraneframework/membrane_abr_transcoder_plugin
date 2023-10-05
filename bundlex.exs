@@ -20,8 +20,15 @@ defmodule BroadcastEngine.ABRTranscoder.BundlexProject do
               "xilinx/xilinx_multiscaling_pipeline.cpp",
               "xilinx/xilinx_encoding_pipeline.cpp",
               "xilinx/xilinx_timestamp_emitter.cpp"
-              ],
-            pkg_configs: ["libavcodec", "libavfilter", "libavutil", "libxma2api", "libxrm", "xvbm"],
+            ],
+            pkg_configs: [
+              "libavcodec",
+              "libavfilter",
+              "libavutil",
+              "libxma2api",
+              "libxrm",
+              "xvbm"
+            ],
             preprocessor: Unifex,
             language: :cpp,
             compiler_flags: ["-std=c++17"]
@@ -40,7 +47,7 @@ defmodule BroadcastEngine.ABRTranscoder.BundlexProject do
               "nvidia/nvidia_multiscaling_pipeline.cpp",
               "nvidia/nvidia_encoding_pipeline.cpp",
               "nvidia/nvidia_timestamp_emitter.cpp"
-              ],
+            ],
             pkg_configs: ["libavcodec", "libavfilter", "libavutil"],
             preprocessor: Unifex,
             language: :cpp,

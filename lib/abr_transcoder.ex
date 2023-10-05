@@ -114,7 +114,8 @@ defmodule ABRTranscoder do
       field :original_stream, StreamParams.t()
       field :target_streams, [StreamParams.t()]
       field :transcoder_ref, reference() | nil, default: nil
-      field :next_frames_gap, non_neg_integer(), default: 0
+      field :last_dts, non_neg_integer() | nil, default: nil
+      field :expected_dts_diff, non_neg_integer
       field :on_successful_init, function()
       field :on_frame_process_start, function()
       field :on_frame_process_end, function()
@@ -131,10 +132,15 @@ defmodule ABRTranscoder do
   def handle_init(_ctx, opts) do
     :ok = verify_streams(opts)
 
-    opts
-    |> Map.from_struct()
-    |> assign_output_frames_expectations()
-    |> then(&{[], struct!(State, &1)})
+    opts =
+      opts
+      |> Map.from_struct()
+      |> assign_output_frames_expectations()
+      |> Map.merge(%{
+        expected_dts_diff: 1.1 * (Membrane.Time.second() / opts.original_stream.framerate)
+      })
+
+    {[], struct!(State, opts)}
   end
 
   @impl true
@@ -214,29 +220,12 @@ defmodule ABRTranscoder do
   end
 
   @impl true
-  def handle_event(:input, %Common.MediaTransport.DroppedVideoFramesEvent{} = event, _ctx, state) do
-    {[], %{state | next_frames_gap: state.next_frames_gap + event.frames}}
-  end
-
-  @impl true
-  def handle_event(:input, event, _ctx, state) do
-    {[forward: event], state}
-  end
-
-  @impl true
-  def handle_process(
-        :input,
-        buffer,
-        _context,
-        %State{backend: %backend{}, transcoder_ref: ref} = state
-      ) do
+  def handle_process(:input, buffer, _context, state) do
     state.on_frame_process_start.()
-
     state = %{state | input_frames: state.input_frames + 1}
+    %State{backend: %backend{}, transcoder_ref: ref} = state
 
-    payload = to_annex_b(buffer.payload, [])
-
-    case backend.process(payload, state.next_frames_gap, ref) do
+    case backend.process(buffer.payload, calc_frames_gap(buffer.dts, state), ref) do
       {:ok, payloads_per_stream} ->
         state = increment_output_frames(payloads_per_stream, state)
         state = maybe_update_first_frame_processed(payloads_per_stream, state)
@@ -247,8 +236,7 @@ defmodule ABRTranscoder do
         state.on_frame_process_end.()
         actions = handle_stream_payloads(payloads_per_stream, state)
 
-        state = %{state | next_frames_gap: 0}
-
+        state = %{state | last_dts: buffer.dts}
         {actions, state}
 
       {:error, reason} ->
@@ -279,7 +267,6 @@ defmodule ABRTranscoder do
 
   defp verify_streams(opts) do
     opts.target_streams
-    # credo:disable-for-next-line Credo.Check.Warning.UnusedEnumOperation
     |> Enum.reduce(opts.original_stream, fn stream, prev_stream ->
       if stream.height <= prev_stream.height and
            stream.width <= prev_stream.width and
@@ -289,8 +276,21 @@ defmodule ABRTranscoder do
         raise "specified targets streams must be passed in decreasing parameters order"
       end
     end)
+    |> then(fn _stream -> :ok end)
+  end
 
-    :ok
+  defp calc_frames_gap(_dts, %{last_dts: nil}) do
+    0
+  end
+
+  defp calc_frames_gap(dts, state) do
+    dts_diff = dts - state.last_dts
+
+    if dts_diff > state.expected_dts_diff do
+      max(round(state.original_stream.framerate * dts_diff / Membrane.Time.second()) - 1, 0)
+    else
+      0
+    end
   end
 
   # NOTE: first target stream has the highest framerate among all target streams
