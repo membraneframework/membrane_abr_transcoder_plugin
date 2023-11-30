@@ -40,6 +40,7 @@ defmodule ABRTranscoder.PipelineRunner do
         gap_size: gap_size
       })
       |> child({:parser, :source}, %Membrane.H264.Parser{output_stream_structure: :annexb})
+      # |> child(%Membrane.Debug.Filter{handle_buffer: &IO.inspect({&1.dts, &1.pts})})
       |> child(:tee, Membrane.Tee.Parallel)
       |> child(:abr_transcoder, %ABRTranscoder{
         original_stream: original_stream,

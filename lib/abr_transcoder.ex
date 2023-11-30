@@ -61,17 +61,17 @@ defmodule ABRTranscoder do
                 """
               ],
               on_successful_init: [
-                spec: (-> term()),
+                spec: (() -> term()),
                 description:
                   "Callback that should be triggered on successful transcoder initialization"
               ],
               on_frame_process_start: [
-                spec: (-> term()),
+                spec: (() -> term()),
                 description:
                   "Callback that should be triggered just before the start of frame processing"
               ],
               on_frame_process_end: [
-                spec: (-> term()),
+                spec: (() -> term()),
                 description: "Callback that should be triggered right after the frame processing"
               ]
 
@@ -125,6 +125,8 @@ defmodule ABRTranscoder do
       field :expect_next_output_frame?, boolean()
       field :input_frames, non_neg_integer(), default: 0
       field :output_frames, non_neg_integer(), default: 0
+      field :input_ptss, [non_neg_integer()], default: []
+      field :initial_input_pts, non_neg_integer() | nil, default: nil
     end
   end
 
@@ -222,10 +224,21 @@ defmodule ABRTranscoder do
   @impl true
   def handle_process(:input, buffer, _context, state) do
     state.on_frame_process_start.()
-    state = %{state | input_frames: state.input_frames + 1}
+
+    initial_pts = state.initial_input_pts || buffer.pts
+    frames_gap = calc_frames_gap(buffer.dts, state)
+    input_ptss = Bunch.Enum.repeated(buffer.pts - initial_pts, frames_gap + 1)
+
+    state = %{
+      state
+      | input_frames: state.input_frames + 1,
+        input_ptss: input_ptss ++ state.input_ptss,
+        initial_input_pts: initial_pts
+    }
+
     %State{backend: %backend{}, transcoder_ref: ref} = state
 
-    case backend.process(buffer.payload, calc_frames_gap(buffer.dts, state), ref) do
+    case backend.process(buffer.payload, frames_gap, ref) do
       {:ok, payloads_per_stream} ->
         state = increment_output_frames(payloads_per_stream, state)
         state = maybe_update_first_frame_processed(payloads_per_stream, state)
@@ -245,23 +258,20 @@ defmodule ABRTranscoder do
   end
 
   defp handle_stream_payloads(payloads_per_stream, state) do
+    # FIXME drop stale ptss
+    input_ptss = Enum.sort(state.input_ptss)
+
     for %StreamFrame{id: pad_id, payload: payload, pts: pts, dts: dts} <- payloads_per_stream do
       %StreamParams{framerate: framerate} = Enum.at(state.target_streams, pad_id)
 
-      pts =
-        div(
-          pts * Membrane.Time.second(),
-          framerate
-        )
+      {pts, dts} =
+        if framerate < state.original_stream.framerate, do: {pts * 2, dts * 2}, else: {pts, dts}
 
-      dts =
-        div(
-          dts * Membrane.Time.second(),
-          framerate
-        )
+      new_pts = Enum.at(input_ptss, pts)
+      new_dts = Enum.at(input_ptss, dts)
 
       {:buffer,
-       {Pad.ref(:output, pad_id), %Membrane.Buffer{payload: payload, pts: pts, dts: dts}}}
+       {Pad.ref(:output, pad_id), %Membrane.Buffer{payload: payload, pts: new_pts, dts: new_dts}}}
     end
   end
 

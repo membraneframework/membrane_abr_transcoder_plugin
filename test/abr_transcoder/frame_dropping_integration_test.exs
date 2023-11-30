@@ -220,6 +220,7 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
   @tag gap_positions: [{1, 119}, {2, 70}, {3, 119}, {4, 99}, {5, 60}, {6, 100}]
   @tag gap_size: @gap_size_60_fps
   @tag timeout: 60_000
+  @tag :target
   test "keyframe-only continious stream", ctx do
     run_test_scenario(ctx, [
       params_with_multiscaler_half_rate(),
