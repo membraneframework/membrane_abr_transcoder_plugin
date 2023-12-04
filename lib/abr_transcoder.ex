@@ -42,11 +42,7 @@ defmodule ABRTranscoder do
     availability: :on_request,
     accepted_format: %H264{alignment: :au, stream_structure: :annexb}
 
-  def_options original_stream: [
-                spec: __MODULE__.StreamParams.t(),
-                description: "Parameters of the original H264 stream"
-              ],
-              target_streams: [
+  def_options target_streams: [
                 spec: list(__MODULE__.StreamParams.t()),
                 description: """
                 List of parameters of target ABR streams. The order passed with this parameter
@@ -73,6 +69,9 @@ defmodule ABRTranscoder do
               on_frame_process_end: [
                 spec: (() -> term()),
                 description: "Callback that should be triggered right after the frame processing"
+              ],
+              min_inter_frame_delay: [
+                default: Membrane.Time.milliseconds(250)
               ]
 
   defmodule StreamParams do
@@ -86,7 +85,7 @@ defmodule ABRTranscoder do
     typedstruct enforce: true do
       field :width, non_neg_integer()
       field :height, non_neg_integer()
-      field :framerate, non_neg_integer()
+      field :framerate, :full | :half, default: :full
       field :bitrate, non_neg_integer()
     end
   end
@@ -111,11 +110,10 @@ defmodule ABRTranscoder do
 
     typedstruct enforce: true do
       field :backend, struct()
-      field :original_stream, StreamParams.t()
       field :target_streams, [StreamParams.t()]
       field :transcoder_ref, reference() | nil, default: nil
       field :last_dts, non_neg_integer() | nil, default: nil
-      field :expected_dts_diff, non_neg_integer
+      field :min_inter_frame_delay, non_neg_integer()
       field :on_successful_init, function()
       field :on_frame_process_start, function()
       field :on_frame_process_end, function()
@@ -132,26 +130,35 @@ defmodule ABRTranscoder do
 
   @impl true
   def handle_init(_ctx, opts) do
-    :ok = verify_streams(opts)
-
     opts =
       opts
       |> Map.from_struct()
       |> assign_output_frames_expectations()
-      |> Map.merge(%{
-        expected_dts_diff: 1.1 * (Membrane.Time.second() / opts.original_stream.framerate)
-      })
 
     {[], struct!(State, opts)}
   end
 
   @impl true
-  def handle_stream_format(:input, %H264{}, ctx, state) do
+  def handle_stream_format(:input, %H264{} = format, ctx, state) do
     %State{
       backend: %backend{} = backend_config,
-      original_stream: original_stream,
       target_streams: target_streams
     } = state
+
+    original_stream = %StreamParams{
+      width: format.width,
+      height: format.height,
+      framerate: 2,
+      bitrate: 6_000_000
+    }
+
+    target_streams =
+      Enum.map(target_streams, fn
+        %{framerate: :full} = stream -> %{stream | framerate: 2}
+        %{framerate: :half} = stream -> %{stream | framerate: 1}
+      end)
+
+    :ok = verify_streams(original_stream, target_streams)
 
     start = System.monotonic_time(:millisecond)
 
@@ -265,7 +272,10 @@ defmodule ABRTranscoder do
       %StreamParams{framerate: framerate} = Enum.at(state.target_streams, pad_id)
 
       {pts, dts} =
-        if framerate < state.original_stream.framerate, do: {pts * 2, dts * 2}, else: {pts, dts}
+        case framerate do
+          :half -> {pts * 2, dts * 2}
+          :full -> {pts, dts}
+        end
 
       new_pts = Enum.at(input_ptss, pts)
       new_dts = Enum.at(input_ptss, dts)
@@ -275,9 +285,9 @@ defmodule ABRTranscoder do
     end
   end
 
-  defp verify_streams(opts) do
-    opts.target_streams
-    |> Enum.reduce(opts.original_stream, fn stream, prev_stream ->
+  defp verify_streams(original_stream, target_streams) do
+    [original_stream | target_streams]
+    |> Enum.reduce(fn stream, prev_stream ->
       if stream.height <= prev_stream.height and
            stream.width <= prev_stream.width and
            stream.framerate <= prev_stream.framerate do
@@ -296,8 +306,8 @@ defmodule ABRTranscoder do
   defp calc_frames_gap(dts, state) do
     dts_diff = dts - state.last_dts
 
-    if dts_diff > state.expected_dts_diff do
-      max(round(state.original_stream.framerate * dts_diff / Membrane.Time.second()) - 1, 0)
+    if dts_diff > state.min_inter_frame_delay do
+      max(round(dts_diff / state.min_inter_frame_delay) - 1, 0)
     else
       0
     end
@@ -305,15 +315,13 @@ defmodule ABRTranscoder do
 
   # NOTE: first target stream has the highest framerate among all target streams
   # thanks to verify_streams/1
-  defp assign_output_frames_expectations(
-         %{original_stream: og, target_streams: [ts | _rest]} = state
-       ) do
+  defp assign_output_frames_expectations(%{target_streams: [ts | _rest]} = state) do
     # When a first target steam has the same framerate as source we will always expect to match
     # input to output frame in 1:1 manner. When it is lower, it is expected to be 2:1 ratio and
     # we should expect every other frame.
     state
-    |> Map.put(:always_expect_output_frame?, ts.framerate >= og.framerate)
-    |> Map.put(:expect_next_output_frame?, ts.framerate >= og.framerate)
+    |> Map.put(:always_expect_output_frame?, ts.framerate == :full)
+    |> Map.put(:expect_next_output_frame?, ts.framerate == :full)
   end
 
   defp increment_output_frames(payloads, state) do

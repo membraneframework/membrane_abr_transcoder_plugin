@@ -18,18 +18,18 @@ defmodule ABRTranscoder.PipelineRunner do
   @spec run(
           struct(),
           String.t(),
-          StreamParams.t(),
           [StreamParams.t()],
           [gap_t()],
-          gap_size :: Membrane.Time.t()
+          gap_size :: Membrane.Time.t(),
+          min_inter_frame_delay :: Membrane.Time.t()
         ) :: Testing.Pipeline.t()
   def run(
         backend,
         input_file,
-        original_stream,
         target_streams,
         gap_positions \\ [],
-        gap_size \\ Membrane.Time.milliseconds(16)
+        gap_size \\ Membrane.Time.milliseconds(16),
+        min_inter_frame_delay \\ Membrane.Time.milliseconds(250)
       ) do
     structure = [
       child(:source, %Membrane.File.Source{location: input_file})
@@ -40,12 +40,11 @@ defmodule ABRTranscoder.PipelineRunner do
         gap_size: gap_size
       })
       |> child({:parser, :source}, %Membrane.H264.Parser{output_stream_structure: :annexb})
-      # |> child(%Membrane.Debug.Filter{handle_buffer: &IO.inspect({&1.dts, &1.pts})})
       |> child(:tee, Membrane.Tee.Parallel)
       |> child(:abr_transcoder, %ABRTranscoder{
-        original_stream: original_stream,
         target_streams: target_streams,
         backend: backend,
+        min_inter_frame_delay: min_inter_frame_delay,
         on_successful_init: fn -> :ok end,
         on_frame_process_start: fn -> :ok end,
         on_frame_process_end: fn -> :ok end

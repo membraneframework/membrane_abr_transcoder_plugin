@@ -41,13 +41,13 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
       %StreamParams{
         width: 1280,
         height: 720,
-        framerate: 60,
+        framerate: :full,
         bitrate: 3_000_000
       },
       %StreamParams{
         width: 852,
         height: 480,
-        framerate: 30,
+        framerate: :half,
         bitrate: 3_000_000
       }
     ]
@@ -67,7 +67,7 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
       %StreamParams{
         width: 1280,
         height: 720,
-        framerate: 30,
+        framerate: :half,
         bitrate: 3_000_000
       }
     ]
@@ -87,7 +87,7 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
       %StreamParams{
         width: 1280,
         height: 720,
-        framerate: 60,
+        framerate: :full,
         bitrate: 3_000_000
       }
     ]
@@ -161,15 +161,15 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
   defp run_test_scenario(ctx, parameters, opts \\ []) do
     parameters = List.wrap(parameters)
 
-    for {original_stream, target_streams} <- parameters do
+    for {_original_stream, target_streams} <- parameters do
       pipeline =
         PipelineRunner.run(
           ctx.backend,
           ctx.video_path,
-          original_stream,
           target_streams,
           ctx.gap_positions,
-          ctx.gap_size
+          ctx.gap_size,
+          1.1 * Membrane.Time.seconds(1) / 60
         )
 
       case Keyword.get(opts, :buffer_match_strategy, :match_buffers_by_gop) do
@@ -180,6 +180,8 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
             target_streams
           )
       end
+
+      Membrane.Pipeline.terminate(pipeline)
     end
   end
 

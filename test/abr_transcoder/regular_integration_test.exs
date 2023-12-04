@@ -16,6 +16,8 @@ defmodule ABRTranscoder.RegularIntegrationTest do
       sink = PipelineRunner.sink_name(i)
       assert_receive_end_of_stream(pipeline, ^sink)
     end
+
+    Membrane.Pipeline.terminate(pipeline)
   end
 
   @u30_frames_overhead 10
@@ -48,29 +50,22 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @tag keyframe_positions: [0, 60, 120, 180, 240, 300]
   @tag timeout: 10 * 60_000
   test "transcode stream where all renditions have the same framerate", ctx do
-    original_stream = %StreamParams{
-      width: ctx.width,
-      height: ctx.height,
-      framerate: ctx.framerate,
-      bitrate: ctx.bitrate
-    }
-
     target_streams = [
       %StreamParams{
         width: 1280,
         height: 720,
-        framerate: ctx.framerate,
+        framerate: :full,
         bitrate: 3_000_000
       },
       %StreamParams{
         width: 852,
         height: 480,
-        framerate: ctx.framerate,
+        framerate: :full,
         bitrate: 3_000_000
       }
     ]
 
-    pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, original_stream, target_streams)
+    pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, target_streams)
 
     for _i <- 0..(300 - 2) do
       assert_receive_sink_buffer(pipeline, :sink_source, source_buffer)
@@ -100,29 +95,22 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @tag keyframe_positions: [0, 120, 240, 360, 480, 600]
   @tag timeout: 10 * 60_000
   test "transcode stream where only source has higher framerate", ctx do
-    original_stream = %StreamParams{
-      width: ctx.width,
-      height: ctx.height,
-      framerate: ctx.framerate,
-      bitrate: ctx.bitrate
-    }
-
     target_streams = [
       %StreamParams{
         width: 1280,
         height: 720,
-        framerate: 30,
+        framerate: :half,
         bitrate: 3_000_000
       },
       %StreamParams{
         width: 852,
         height: 480,
-        framerate: 30,
+        framerate: :half,
         bitrate: 3_000_000
       }
     ]
 
-    pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, original_stream, target_streams)
+    pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, target_streams)
 
     for i <- 0..(600 - @u30_frames_overhead) do
       assert_receive_sink_buffer(pipeline, :sink_source, _source_buffer)
@@ -147,29 +135,22 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @tag keyframe_positions: [0, 2, 60, 63, 120, 121, 180, 185, 200, 260, 320, 480, 540, 595]
   @tag timeout: 10 * 60_000
   test "transcode h264 frames while keeping the originial key frame positions", ctx do
-    original_stream = %StreamParams{
-      width: 1920,
-      height: 1080,
-      framerate: 60,
-      bitrate: 6_000_000
-    }
-
     target_streams = [
       %StreamParams{
         width: 1280,
         height: 720,
-        framerate: 60,
+        framerate: :full,
         bitrate: 3_000_000
       },
       %StreamParams{
         width: 852,
         height: 480,
-        framerate: 30,
+        framerate: :half,
         bitrate: 3_000_000
       }
     ]
 
-    pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, original_stream, target_streams)
+    pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, target_streams)
 
     for i <- 0..(600 - @u30_frames_overhead) do
       assert_receive_sink_buffer(pipeline, :sink_source, source_buffer)
@@ -206,29 +187,22 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @tag repeat_headers: false
   @tag timeout: 10 * 60_000
   test "transcode stream with non-repeating h264 headers", ctx do
-    original_stream = %StreamParams{
-      width: ctx.width,
-      height: ctx.height,
-      framerate: ctx.framerate,
-      bitrate: ctx.bitrate
-    }
-
     target_streams = [
       %StreamParams{
         width: 1280,
         height: 720,
-        framerate: 30,
+        framerate: :full,
         bitrate: 3_000_000
       },
       %StreamParams{
         width: 852,
         height: 480,
-        framerate: 30,
+        framerate: :full,
         bitrate: 3_000_000
       }
     ]
 
-    pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, original_stream, target_streams)
+    pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, target_streams)
 
     for _i <- 0..(300 - @u30_frames_overhead) do
       assert_receive_sink_buffer(pipeline, :sink_source, _source_buffer)
