@@ -62,7 +62,7 @@ RUN git clone -b n12.0.16.0 --depth 1 https://git.videolan.org/git/ffmpeg/nv-cod
 
 # Clone, apply the patch and compile FFmpeg
 RUN git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg/ \
-    && cd ffmpeg && git checkout 284d1a8a6a2b8de2d5df7555232a086e2739c3d6 && git apply ../hw_device_ctx_filter_graph.patch && \
+    && cd ffmpeg && git checkout 284d1a8a6a2b8de2d5df7555232a086e2739c3d6 && \
     ./configure \
     --enable-nonfree \
     --enable-gpl \

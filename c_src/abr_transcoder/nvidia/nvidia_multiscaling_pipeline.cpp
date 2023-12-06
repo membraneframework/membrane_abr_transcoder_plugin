@@ -121,8 +121,13 @@ NvidiaMultiscalingPipeline::NvidiaMultiscalingPipeline(
 
 
   spdlog::debug("Parsing filter graph: {}", graph_filter_spec.c_str());
-  ret = avfilter_graph_parse_ptr(
+  #ifdef PATCH_FFMPEG_AVFILTER_GRAPH_PARSE_HWDEVICE
+    ret = avfilter_graph_parse_ptr(
       graph, graph_filter_spec.c_str(), &filter_inputs, &filter_outputs, device_context->GetDeviceContext(), nullptr);
+  #else
+    ret = avfilter_graph_parse_ptr(
+        graph, graph_filter_spec.c_str(), &filter_inputs, &filter_outputs, nullptr);
+  #endif
   if (ret < 0) {
     // avfilter_graph_parse_ptr in case of an error will free both filter_inputs and filter_outputs
     avfilter_graph_free(&graph);
