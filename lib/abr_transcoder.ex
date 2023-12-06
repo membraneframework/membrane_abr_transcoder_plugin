@@ -33,6 +33,11 @@ defmodule ABRTranscoder do
 
   alias Membrane.H264
 
+  # The value below has been chosen empirically (based on xilinx transcoder).
+  # It is a maximum value that has been observed for 60FPS (source) -> 30FPS (first target)
+  # transition.
+  @max_allowed_input_output_frames_offset 45
+
   def_input_pad :input,
     demand_mode: :auto,
     accepted_format: %H264{alignment: :au, stream_structure: :annexb}
@@ -56,6 +61,15 @@ defmodule ABRTranscoder do
                 that should be used for initialization
                 """
               ],
+              min_inter_frame_delay: [
+                default: Membrane.Time.milliseconds(250),
+                default_inspector: &Membrane.Time.pretty_duration/1,
+                description: """
+                If delay between input frames is bigger than this value,
+                the transcoder won't reduce the framerate on the outputs
+                with `framerate: :half`.
+                """
+              ],
               on_successful_init: [
                 spec: (() -> term()),
                 description:
@@ -69,9 +83,6 @@ defmodule ABRTranscoder do
               on_frame_process_end: [
                 spec: (() -> term()),
                 description: "Callback that should be triggered right after the frame processing"
-              ],
-              min_inter_frame_delay: [
-                default: Membrane.Time.milliseconds(250)
               ]
 
   defmodule StreamParams do
@@ -123,6 +134,7 @@ defmodule ABRTranscoder do
       field :expect_next_output_frame?, boolean()
       field :input_frames, non_neg_integer(), default: 0
       field :output_frames, non_neg_integer(), default: 0
+      field :input_frames_with_gaps, non_neg_integer(), default: 0
       field :input_ptss, [non_neg_integer()], default: []
       field :initial_input_pts, non_neg_integer() | nil, default: nil
     end
@@ -232,15 +244,13 @@ defmodule ABRTranscoder do
   def handle_process(:input, buffer, _context, state) do
     state.on_frame_process_start.()
 
-    initial_pts = state.initial_input_pts || buffer.pts
     frames_gap = calc_frames_gap(buffer.dts, state)
-    input_ptss = Bunch.Enum.repeated(buffer.pts - initial_pts, frames_gap + 1)
+    state = update_input_ptss(buffer.pts, frames_gap, state)
 
     state = %{
       state
       | input_frames: state.input_frames + 1,
-        input_ptss: input_ptss ++ state.input_ptss,
-        initial_input_pts: initial_pts
+        input_frames_with_gaps: state.input_frames_with_gaps + frames_gap + 1
     }
 
     %State{backend: %backend{}, transcoder_ref: ref} = state
@@ -266,7 +276,7 @@ defmodule ABRTranscoder do
 
   defp handle_stream_payloads(payloads_per_stream, state) do
     # FIXME drop stale ptss
-    input_ptss = Enum.sort(state.input_ptss)
+    # input_ptss = Enum.sort(state.input_ptss)
 
     for %StreamFrame{id: pad_id, payload: payload, pts: pts, dts: dts} <- payloads_per_stream do
       %StreamParams{framerate: framerate} = Enum.at(state.target_streams, pad_id)
@@ -277,8 +287,8 @@ defmodule ABRTranscoder do
           :full -> {pts, dts}
         end
 
-      new_pts = Enum.at(input_ptss, pts)
-      new_dts = Enum.at(input_ptss, dts)
+      new_pts = get_corresponding_timestamp(pts, state)
+      new_dts = get_corresponding_timestamp(dts, state)
 
       {:buffer,
        {Pad.ref(:output, pad_id), %Membrane.Buffer{payload: payload, pts: new_pts, dts: new_dts}}}
@@ -372,10 +382,6 @@ defmodule ABRTranscoder do
 
   defp update_output_frame_expectations(_payloads, state), do: state
 
-  # The value below has been chosen empirically (based on xilinx transcoder).
-  # It is a maximum value that has been observed for 60FPS (source) -> 30FPS (first target)
-  # transition.
-  @max_allowed_input_output_frames_offset 45
   defp log_empty_payloads_warning(state) do
     output_frames =
       if state.always_expect_output_frame? do
@@ -393,5 +399,38 @@ defmodule ABRTranscoder do
     end
 
     :ok
+  end
+
+  defp update_input_ptss(pts, frames_gap, state) do
+    initial_pts = state.initial_input_pts || pts
+    input_pts = pts - initial_pts
+
+    input_ptss =
+      if rem(state.input_frames, @max_allowed_input_output_frames_offset * 2) == 0 do
+        Enum.take(state.input_ptss, @max_allowed_input_output_frames_offset * 2)
+      else
+        state.input_ptss
+      end
+
+    {greater_ptss, lower_ptss} =
+      Enum.split_while(input_ptss, fn {pts, _frames_no} -> pts > input_pts end)
+
+    %{
+      state
+      | initial_input_pts: initial_pts,
+        input_ptss: greater_ptss ++ [{input_pts, frames_gap + 1}] ++ lower_ptss
+    }
+  end
+
+  defp get_corresponding_timestamp(timestamp, state) do
+    state.input_ptss
+    |> Enum.reduce_while(state.input_frames_with_gaps - 1, fn {pts, frames_no}, i ->
+      if timestamp in (i - frames_no + 1)..i do
+        {:halt, {:pts, pts}}
+      else
+        {:cont, i - frames_no}
+      end
+    end)
+    |> then(fn {:pts, pts} -> pts end)
   end
 end
