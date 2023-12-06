@@ -97,7 +97,7 @@ defmodule ABRTranscoder do
       field :width, non_neg_integer()
       field :height, non_neg_integer()
       field :framerate, :full | :half, default: :full
-      field :bitrate, non_neg_integer()
+      field :bitrate, non_neg_integer() | nil, default: nil
     end
   end
 
@@ -161,14 +161,16 @@ defmodule ABRTranscoder do
       width: format.width,
       height: format.height,
       framerate: 2,
-      bitrate: 6_000_000
+      bitrate: -1
     }
 
     target_streams =
-      Enum.map(target_streams, fn
+      target_streams
+      |> Enum.map(fn
         %{framerate: :full} = stream -> %{stream | framerate: 2}
         %{framerate: :half} = stream -> %{stream | framerate: 1}
       end)
+      |> Enum.map(&%{&1 | bitrate: &1.bitrate || -1})
 
     :ok = verify_streams(original_stream, target_streams)
 

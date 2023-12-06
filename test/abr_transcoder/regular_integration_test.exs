@@ -60,8 +60,7 @@ defmodule ABRTranscoder.RegularIntegrationTest do
       %StreamParams{
         width: 852,
         height: 480,
-        framerate: :full,
-        bitrate: 3_000_000
+        framerate: :full
       }
     ]
 
@@ -105,8 +104,7 @@ defmodule ABRTranscoder.RegularIntegrationTest do
       %StreamParams{
         width: 852,
         height: 480,
-        framerate: :half,
-        bitrate: 3_000_000
+        framerate: :half
       }
     ]
 
