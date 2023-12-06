@@ -7,7 +7,6 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   require Membrane.Pad
 
   alias ABRTranscoder.PipelineRunner
-  alias ABRTranscoder.StreamParams
 
   defp assert_streams_ended(pipeline, target_streams) do
     assert_receive_end_of_stream(pipeline, :sink_source)
@@ -51,17 +50,17 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @tag timeout: 10 * 60_000
   test "transcode stream where all renditions have the same framerate", ctx do
     target_streams = [
-      %StreamParams{
+      [
         width: 1280,
         height: 720,
         framerate: :full,
         bitrate: 3_000_000
-      },
-      %StreamParams{
+      ],
+      [
         width: 852,
         height: 480,
         framerate: :full
-      }
+      ]
     ]
 
     pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, target_streams)
@@ -95,17 +94,17 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @tag timeout: 10 * 60_000
   test "transcode stream where only source has higher framerate", ctx do
     target_streams = [
-      %StreamParams{
+      [
         width: 1280,
         height: 720,
         framerate: :half,
         bitrate: 3_000_000
-      },
-      %StreamParams{
+      ],
+      [
         width: 852,
         height: 480,
         framerate: :half
-      }
+      ]
     ]
 
     pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, target_streams)
@@ -134,18 +133,18 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @tag timeout: 10 * 60_000
   test "transcode h264 frames while keeping the originial key frame positions", ctx do
     target_streams = [
-      %StreamParams{
+      [
         width: 1280,
         height: 720,
         framerate: :full,
         bitrate: 3_000_000
-      },
-      %StreamParams{
+      ],
+      [
         width: 852,
         height: 480,
         framerate: :half,
         bitrate: 3_000_000
-      }
+      ]
     ]
 
     pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, target_streams)
@@ -186,18 +185,18 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @tag timeout: 10 * 60_000
   test "transcode stream with non-repeating h264 headers", ctx do
     target_streams = [
-      %StreamParams{
+      [
         width: 1280,
         height: 720,
         framerate: :full,
         bitrate: 3_000_000
-      },
-      %StreamParams{
+      ],
+      [
         width: 852,
         height: 480,
         framerate: :full,
         bitrate: 3_000_000
-      }
+      ]
     ]
 
     pipeline = PipelineRunner.run(ctx.backend, ctx.video_path, target_streams)

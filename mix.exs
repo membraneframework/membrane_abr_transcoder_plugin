@@ -17,7 +17,7 @@ defmodule AbrTranscoder.MixProject do
 
   defp extra_compilers do
     case Mix.target() do
-      _ -> []
+      # _ -> []
       :host -> []
       target when target in [:xilinx, :nvidia] -> [:unifex, :bundlex]
     end
@@ -63,7 +63,7 @@ defmodule AbrTranscoder.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md"],
+      extras: ["README.md", "LICENSE"],
       formatters: ["html"]
     ]
   end
