@@ -1,0 +1,3 @@
+[submodule "c_src/abr_transcoder/vendor/spdlog"]
+	path = c_src/abr_transcoder/vendor/spdlog
+	url = git@github.com:gabime/spdlog.git

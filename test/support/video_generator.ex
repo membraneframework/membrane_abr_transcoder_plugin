@@ -56,7 +56,7 @@ defmodule ABRTranscoder.VideoGenerator do
          keyframe_positions
        ) do
     ~w(
-      -loglevel error -hide_banner -r #{framerate} -f lavfi -i testsrc=size=#{width}x#{height} -crf #{framerate} -t #{duration}
+      -y -loglevel error -hide_banner -r #{framerate} -f lavfi -i testsrc=size=#{width}x#{height} -crf #{framerate} -t #{duration}
       -force_key_frames expr:#{generate_key_frame_filter(keyframe_positions)}
       -vsync cfr -vcodec libx264 -b:v #{bitrate} -x264-params nal-hrd=cbr -bufsize 1M -pix_fmt yuv420p
       )
@@ -70,7 +70,7 @@ defmodule ABRTranscoder.VideoGenerator do
     generation_command = base_command ++ ~w(-bsf:v h264_mp4toannexb -f mpegts #{path}.mp4)
 
     flv_command = ~w(
-        -loglevel error -hide_banner -f mpegts -copyts -start_at_zero -i #{path}.mp4
+        -y -loglevel error -hide_banner -f mpegts -copyts -start_at_zero -i #{path}.mp4
         -c copy -muxdelay 0 -muxpreload 0
         -f flv #{path}.flv
       )

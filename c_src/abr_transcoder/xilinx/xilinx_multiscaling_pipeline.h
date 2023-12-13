@@ -1,6 +1,7 @@
 #pragma once
 
 #include <optional>
+#include <deque>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -54,7 +55,7 @@ private:
 
   std::vector<uint32_t> scaled_frame_counts;
 
-  std::vector<std::queue<FrameNumber>> keyframe_positions;
+  std::vector<std::deque<FrameNumber>> keyframe_positions;
   std::vector<std::queue<std::pair<FrameNumber, FrameGap>>>
       frame_gap_positions;
   std::vector<std::queue<FrameNumber>> skip_frame_positions;

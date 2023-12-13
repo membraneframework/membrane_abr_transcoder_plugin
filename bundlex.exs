@@ -44,7 +44,10 @@ defmodule BroadcastEngine.ABRTranscoder.BundlexProject do
             pkg_configs: ["libavcodec", "libavfilter", "libavutil"],
             preprocessor: Unifex,
             language: :cpp,
-            compiler_flags: ["-std=c++17"]
+            compiler_flags: [
+              "-std=c++17",
+              "-Ic_src/abr_transcoder/vendor"
+            ]
           ]
         ]
 

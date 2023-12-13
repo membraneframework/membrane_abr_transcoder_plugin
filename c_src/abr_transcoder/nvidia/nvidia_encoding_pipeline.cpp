@@ -1,6 +1,7 @@
 #include "nvidia_encoding_pipeline.h"
 #include <memory>
 #include <stdexcept>
+#include <spdlog/spdlog.h>
 
 extern "C" {
     #include <libavutil/error.h>
@@ -24,6 +25,7 @@ NvidiaEncodingPipeline::NvidiaEncodingPipeline(
 
   pkt = av_packet_alloc();
 
+  spdlog::debug("Initializing encoder id = {}", output_id);
   encoder = avcodec_alloc_context3(enc_codec);
   if (!encoder) {
     av_packet_free(&pkt);
@@ -38,13 +40,11 @@ NvidiaEncodingPipeline::NvidiaEncodingPipeline(
   encoder->time_base = (AVRational){1, framerate};
   encoder->framerate = (AVRational){framerate, 1};
 
-  // we want to emit a key frame every 2 seconds
-  encoder->gop_size = KEYFRAME_INTERVAL * framerate;
   int max_b_frames = 2;
   encoder->max_b_frames = max_b_frames;
-  encoder->pix_fmt = AV_PIX_FMT_NV12;
+  encoder->pix_fmt = AV_PIX_FMT_CUDA;
 
-  encoder->hw_device_ctx = av_buffer_ref(device_context->GetDeviceContext());
+  encoder->hw_frames_ctx = av_buffer_ref(device_context->GetFramesContext(output_id));
 
   // set profile to high
   av_opt_set(encoder->priv_data, "profile", "high", 0);
@@ -54,8 +54,6 @@ NvidiaEncodingPipeline::NvidiaEncodingPipeline(
   av_opt_set(encoder->priv_data, "preset", "p4", 0);
   // tune for low latency
   av_opt_set(encoder->priv_data, "tune", "ll", 0);
-
-
 
   AVDictionary* enc_dict = NULL;
   // number of allowed consecutive B-frames
@@ -68,6 +66,8 @@ NvidiaEncodingPipeline::NvidiaEncodingPipeline(
 
     throw std::runtime_error("Failed to open a encoder context");
   }
+
+  spdlog::debug("Encoder initialized id = {}", output_id);
 
   av_dict_free(&enc_dict);
 }

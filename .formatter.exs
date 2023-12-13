@@ -1,8 +1,5 @@
+# Used by "mix format"
 [
-  inputs: [
-    "{lib,test,config}/**/*.{ex,exs}",
-    ".formatter.exs",
-    "*.exs"
-  ],
-  import_deps: [:membrane_core]
+  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"],
+  import_deps: [:membrane_core, :typed_struct]
 ]

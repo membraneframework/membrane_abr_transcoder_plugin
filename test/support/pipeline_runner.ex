@@ -45,18 +45,19 @@ defmodule ABRTranscoder.PipelineRunner do
         target_streams: target_streams,
         backend: backend,
         on_successful_init: fn -> :ok end,
-        on_frame_process: fn -> :ok end
+        on_frame_process_start: fn -> :ok end,
+        on_frame_process_end: fn -> :ok end
       }),
       get_child(:tee)
-      |> child({:parser, :source}, parser(original_stream.framerate))
+      |> child({:parser, :source}, parser())
       |> child(:sink_source, Testing.Sink)
     ]
 
     sinks =
-      for {stream, idx} <- Enum.with_index(target_streams) do
+      for {_stream, idx} <- Enum.with_index(target_streams) do
         get_child(:abr_transcoder)
         |> via_out(Pad.ref(:output, idx))
-        |> child({:parser, idx}, parser(stream.framerate))
+        |> child({:parser, idx}, parser())
         |> child(sink_name(idx), Testing.Sink)
       end
 
@@ -73,9 +74,9 @@ defmodule ABRTranscoder.PipelineRunner do
     pipeline
   end
 
-  defp parser(framerate) do
+  defp parser() do
     %Membrane.H264.Parser{
-      framerate: {framerate, 1}
+      output_stream_structure: :avc3
     }
   end
 end

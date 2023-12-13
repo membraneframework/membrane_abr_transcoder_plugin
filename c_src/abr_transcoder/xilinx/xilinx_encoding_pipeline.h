@@ -39,4 +39,5 @@ private:
   XilinxTimestampEmitter timestamp_emitter;
   uint32_t encoded_frames = 0;
   bool first_frame_processed = false;
+  bool increment_timestamps_on_next_frame = false;
 };

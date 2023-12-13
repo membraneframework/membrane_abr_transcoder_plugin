@@ -5,12 +5,13 @@
 #include <vector>
 #include <stdexcept>
 #include <string_view>
+#include <spdlog/spdlog.h>
 
 std::string createGraphFilterSpec(MultiScalerInput input,
                                   const std::vector<MultiScalerOutput>& outputs) {
   std::stringstream ss;
 
-  ss << "[in]split=" << outputs.size() ;
+  ss << "[in]hwupload_cuda,split=" << outputs.size() ;
   for (size_t i = 0; i < outputs.size(); i++) {
     ss << "[in_" << i << "]";
   }
@@ -24,7 +25,7 @@ std::string createGraphFilterSpec(MultiScalerInput input,
       ss << "fps=" << outputs[i].framerate << ",";
     }
 
-    ss << "hwupload_cuda,scale_npp=" << outputs[i].width << ":" << outputs[i].height << ",hwdownload" << "[out_" << i << "]; ";
+    ss << "scale_npp=" << outputs[i].width << ":" << outputs[i].height << "[out_" << i << "]; ";
   }
 
   return ss.str();
@@ -87,7 +88,8 @@ NvidiaMultiscalingPipeline::NvidiaMultiscalingPipeline(
       avfilter_graph_free(&graph);
       throw std::runtime_error("Cannot create buffer sink");
     }
-    enum AVPixelFormat pix_fmts[] = {AV_PIX_FMT_NV12, AV_PIX_FMT_NONE};
+
+    enum AVPixelFormat pix_fmts[] = {AV_PIX_FMT_CUDA, AV_PIX_FMT_NONE};
 
     ret = av_opt_set_int_list(buffer_sinks[i], "pix_fmts", pix_fmts, AV_PIX_FMT_NONE, AV_OPT_SEARCH_CHILDREN);
     if (ret < 0) {
@@ -118,6 +120,7 @@ NvidiaMultiscalingPipeline::NvidiaMultiscalingPipeline(
   filter_outputs->next = NULL;
 
 
+  spdlog::debug("Parsing filter graph: {}", graph_filter_spec.c_str());
   ret = avfilter_graph_parse_ptr(
       graph, graph_filter_spec.c_str(), &filter_inputs, &filter_outputs, device_context->GetDeviceContext(), nullptr);
   if (ret < 0) {
@@ -126,26 +129,20 @@ NvidiaMultiscalingPipeline::NvidiaMultiscalingPipeline(
     throw std::runtime_error("Invalid filter graph definition");
   }
 
-  for (int i = 0; i < (int)graph->nb_filters; i++) {
-    auto name = std::string_view{graph->filters[i]->name};
-
-    auto cuda_filters = std::vector<std::string>{"hwupload", "hwdownload", "scale_npp"};
-
-    for (const auto& filter : cuda_filters) {
-      if (name.find(filter) != std::string_view::npos) {
-        graph->filters[i]->hw_device_ctx = av_buffer_ref(device_context->GetDeviceContext());
-      }
-    }
-  }
-
+  spdlog::debug("Configuring filter graph");
   if ((ret = avfilter_graph_config(graph, NULL)) < 0) {
     avfilter_graph_free(&graph);
     throw std::runtime_error("Failed to configure graph");
   }
+  spdlog::debug("Filter graph configured");
 
   for (const auto& output : outputs) {
     output_half_rate_filter_applied[output.id] =
         output.framerate < input.framerate;
+  }
+
+  for (unsigned int i = 0; i < buffer_sinks.size(); i++) {
+    device_context->PutFrameContext(i, av_buffersink_get_hw_frames_ctx(buffer_sinks[i]));
   }
 
   auto any_output_halved =

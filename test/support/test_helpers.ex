@@ -38,6 +38,20 @@ defmodule ABRTranscoder.TestHelpers do
     end
   end
 
+  defmacro sink_buffer_match(pipeline, sink_name, pattern) do
+    quote do
+      {Membrane.Testing.Pipeline, unquote(pipeline),
+       {:handle_child_notification, {{:buffer, unquote(pattern)}, unquote(sink_name)}}}
+    end
+  end
+
+  defmacro sink_eos_match(pipeline, sink_name) do
+    quote do
+      {Membrane.Testing.Pipeline, unquote(pipeline),
+       {:handle_element_end_of_stream, {unquote(sink_name), :input}}}
+    end
+  end
+
   defmacro assert_receive_end_of_stream(pipeline, sink_name, timeout \\ 2_000) do
     assertion = &assert_receive_from_pipeline/3
 

@@ -23,6 +23,7 @@ public:
 
 private:
   std::queue<std::pair<uint32_t, uint32_t>> pending_frame_gaps;
+  std::queue<uint32_t> temporary_timestamp_increments;
   bool requires_timestamp_halving;
   bool requires_offset_halving;
   // When output stream contains B-frames the first DTS value is negative.

@@ -5,7 +5,7 @@ defmodule AbrTranscoder.MixProject do
     [
       app: :abr_transcoder,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       compilers: extra_compilers() ++ Mix.compilers(),
@@ -27,11 +27,12 @@ defmodule AbrTranscoder.MixProject do
 
   defp deps do
     [
+      {:common_media_transport, "~> 1.0", organization: "vstream"},
       {:membrane_core, "~> 0.12"},
       {:unifex, "~> 1.1"},
-      {:membrane_h264_format, "~> 0.5.0"},
+      {:membrane_h264_format, "~> 0.6.1"},
       {:membrane_raw_video_format, "~> 0.3.0"},
-      {:membrane_h264_plugin, "~> 0.5.0"},
+      {:membrane_h264_plugin, "~> 0.7.2"},
 
       # dev dependencies
       {:typed_struct, "~> 0.3", runtime: false},
@@ -41,7 +42,7 @@ defmodule AbrTranscoder.MixProject do
 
       # test depenencies
       {:membrane_file_plugin, "~> 0.15.0", only: :test},
-      {:membrane_flv_plugin, "~> 0.7.0", only: :test},
+      {:membrane_flv_plugin, "~> 0.9.0", only: :test},
       {:membrane_tee_plugin, "~> 0.11.0", only: :test}
     ]
   end

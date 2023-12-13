@@ -24,7 +24,7 @@ NvidiaDecodingPipeline::NvidiaDecodingPipeline(int width,
   decoder->pkt_timebase = {1, framerate};
 
   decoder->profile = FF_PROFILE_H264_HIGH;
-  decoder->level = H264_LEVEL_42;
+  decoder->level = H264_LEVEL_52;
   decoder->bit_rate = bitrate;
   decoder->width = width;
   decoder->height = height;

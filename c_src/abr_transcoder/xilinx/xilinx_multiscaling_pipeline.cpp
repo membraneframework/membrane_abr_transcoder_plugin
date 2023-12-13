@@ -199,17 +199,21 @@ void XilinxMultiscalingPipeline::EnqueueKeyFrame(
       auto& queue = keyframe_positions[output.id];
 
       if (queue.empty()) {
-        queue.push(keyframe_at);
-      } else if (queue.front() == keyframe_at && output_half_rate_filter_applied[output.id]) {
+        queue.push_back(keyframe_at);
+      } else if ((input_half_rate_filter_applied || output_half_rate_filter_applied[output.id]) &&
+        std::find_if(std::begin(queue), std::end(queue), [=](const FrameNumber at) { return at == keyframe_at; }) != std::end(queue)) {
         // In case of half-rate outputs it may happen that we get 2 consecutive keyframes queued (frame dropping).
-        // When it happens just ignore the recent keyframe request.
+        // In the source stream they will appear as separate frame but for the half-rate stream they
+        // can get merged into one due to the logic `()keyframe_at + 1) / 2`.
+        //
+        // When it happens just ignore the recent keyframe request as it is already scheduled.
         continue;
       } else if (queue.front() == keyframe_at) {
         throw std::runtime_error("Keyframe request already queued.");
       } else if (queue.front() > keyframe_at) {
         throw std::runtime_error("Keyframe request is in the past.");
       } else {
-        queue.push(keyframe_at);
+        queue.push_back(keyframe_at);
       }
     }
   }
@@ -224,7 +228,7 @@ bool XilinxMultiscalingPipeline::DequeueKeyFrame(ScalerOutputID output_id,
   }
 
   if (queue.front() == frame_num) {
-    queue.pop();
+    queue.pop_front();
     return true;
   }
 

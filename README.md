@@ -1,35 +1,37 @@
-# Membrane Template Plugin
+# ABR Transcoder
 
-[![Hex.pm](https://img.shields.io/hexpm/v/membrane_template_plugin.svg)](https://hex.pm/packages/membrane_template_plugin)
-[![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/membrane_template_plugin)
-[![CircleCI](https://circleci.com/gh/membraneframework/membrane_template_plugin.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane_template_plugin)
+An implementation of Membrane element responsible for ingesting
+a single video stream and outputting multiple resolution in ABR (adaptive bitrate) fashion.
 
-This repository contains a template for new plugins.
+The main goal is to use hardware accelerated computing to process output streams
+faster than real-time so the processing does not fall behind the source stream.
 
-Check out different branches for other flavours of template.
+## Backends
 
-It is part of [Membrane Multimedia Framework](https://membraneframework.org).
+`ABRTranscoder` module is supposed to be a generic API, seamless to use,
+while the heavy lifting is done by an implementation of transcoder backend.
+
+Currently available backends:
+
+- `ABRTranscoder.Backends.U30` - implementation utilizing Xilinx U30 media accelerator (available via AWS VT1 instances)
 
 ## Installation
 
-The package can be installed by adding `membrane_template_plugin` to your list of dependencies in `mix.exs`:
+Backend implementations are highly dependent on the system they get installed in therefore
+one needs to specify a particular `mix` target to enforce the backend compilation.
+
+Targets per backend implementation:
+
+- `xilinx` -> `ABRTranscoder.Backends.U30`
+
+Once the the target gets specified the proper backend module should become available (given the compilation was successful).
+
+To use the transcoder in `broadcast_engine` application just import the dependency and specify the proper target via `MIX_TARGET` env:
 
 ```elixir
 def deps do
   [
-    {:membrane_template_plugin, "~> 0.1.0"}
+    {:abr_transcoder, path: "../abr_transcoder"}
   ]
 end
 ```
-
-## Usage
-
-TODO
-
-## Copyright and License
-
-Copyright 2020, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane_template_plugin)
-
-[![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=membrane-github)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane_template_plugin)
-
-Licensed under the [Apache License, Version 2.0](LICENSE)

@@ -10,13 +10,13 @@ extern "C" {
 
 #include "../decoding_pipeline.h"
 
-// The lowest H264 level supporting FHD streams up to 60FPS
+// The lowest H264 level supporting FHD streams up to 60FPS and QuickSync
 // https://en.wikipedia.org/wiki/Advanced_Video_Coding#Levels
 
 class XilinxDecodingPipeline : public DecodingPipeline<AVFrame> {
   static constexpr int MAX_PACKETS_WITHOUT_FRAME = 100;
   static constexpr const char* DECODER_NAME = "mpsoc_vcu_h264";
-  static constexpr int H264_LEVEL_42 = 42;
+  static constexpr int H264_LEVEL_52 = 52;
 public:
   XilinxDecodingPipeline(int width, int height, int bitrate, int device_id);
 

@@ -2,9 +2,8 @@
 #include "xilinx_encoding_pipeline.h"
 #include <stdexcept>
 
-
 XilinxEncodingPipeline::XilinxEncodingPipeline(
-  uint32_t output_id,
+    uint32_t output_id,
     int width,
     int height,
     int framerate,
@@ -14,7 +13,7 @@ XilinxEncodingPipeline::XilinxEncodingPipeline(
     : EncodingPipeline(output_id, width, height, framerate, bitrate),
       timestamp_emitter(timestamp_emitter) {
   auto* enc_codec = avcodec_find_encoder_by_name(ENCODER_NAME);
-  if (!enc_codec ) {
+  if (!enc_codec) {
     throw std::runtime_error("Failed to find xilinx encoder");
   }
 
@@ -83,7 +82,8 @@ void XilinxEncodingPipeline::Process(VideoFrame<AVFrame>& frame) {
 }
 
 void XilinxEncodingPipeline::Flush() {
-  if (!first_frame_processed) return;
+  if (!first_frame_processed)
+    return;
 
   int ret = avcodec_send_frame(encoder, NULL);
   if (ret < 0) {
@@ -101,10 +101,9 @@ std::optional<EncodedFrame> XilinxEncodingPipeline::GetNext() {
     frame.dts = pkt->dts;
     frame.pts = pkt->pts;
 
-     timestamp_emitter.SetTimestamps(frame);
-
-      encoded_frames++;
-      return std::optional{frame};
+    timestamp_emitter.SetTimestamps(frame);
+    encoded_frames++;
+    return std::optional{frame};
   }
 
   if (ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {

@@ -22,7 +22,7 @@ public:
     void StopTimer(const std::string& label);
 
     ProfilingSummary Summary(const std::string& label) const { return summaries.at(label); }
-
+    const std::unordered_map<std::string, ProfilingSummary>& Summaries() const { return summaries; }
 private:
     std::unordered_map<std::string, ProfilingSummary>  summaries;
     std::unordered_map<std::string, std::chrono::system_clock::time_point> timers;

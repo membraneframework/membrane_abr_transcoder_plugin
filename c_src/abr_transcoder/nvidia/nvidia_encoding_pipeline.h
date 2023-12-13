@@ -16,8 +16,6 @@ class NvidiaEncodingPipeline : public EncodingPipeline<AVFrame> {
   // The lowest H264 level supporting FHD streams up to 60FPS
   // https://en.wikipedia.org/wiki/Advanced_Video_Coding#Levels
   static constexpr int H264_LEVEL_42 = 42;
-  // keyframe interval in seconds
-  static constexpr int KEYFRAME_INTERVAL = 2;
 public:
   NvidiaEncodingPipeline(uint32_t output_id, int width,
                          int height,

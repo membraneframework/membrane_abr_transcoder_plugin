@@ -22,5 +22,17 @@ if Mix.target() == :nvidia do
         target_streams
       )
     end
+
+    @spec initialize() :: :ok | {:error, reason :: String.t()}
+    def initialize() do
+      if probe = System.find_executable("nvidia-modprobe") do
+        case System.cmd(probe, []) do
+          {_reusult, 0} -> :ok
+          {_result, _code} -> {:error, "failed to run nvidia-modprobe"}
+        end
+      else
+        {:error, "nvidia-modprobe not found"}
+      end
+    end
   end
 end

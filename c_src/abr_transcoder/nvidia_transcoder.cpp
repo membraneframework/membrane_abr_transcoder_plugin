@@ -4,6 +4,7 @@
 #include <cstring>
 #include <iostream>
 #include <utility>
+#include <spdlog/spdlog.h>
 
 #include "execution_profiler.h"
 #include "multiscaling_pipeline.h"
@@ -28,6 +29,20 @@ extern "C" {
 void handle_destroy_state(UnifexEnv* env, UnifexState* state) {
   UNIFEX_UNUSED(env);
 
+  auto& execution_profiler = state->transcoding_pipeline->GetExecutionProfiler();
+
+  for (auto [label, summary] : execution_profiler.Summaries()) {
+    spdlog::debug(
+      "Profiler summary for {}: max_time = {}μs, min_time = {}μs, avg_time = {}μs, total_time = {}μs, measurements = {}",
+      label,
+      summary.max_time,
+      summary.min_time,
+      summary.average_time,
+      summary.total_time,
+      summary.measurements
+    );
+  }
+
   state->~State();
 }
 
@@ -46,13 +61,18 @@ UNIFEX_TERM create(UnifexEnv* env,
   State* state = unifex_alloc_state(env);
   state = new (state) State();
 
-  try {
-    auto device_context = std::make_shared<NvidiaDeviceContext>();
+  spdlog::set_level(spdlog::level::info);
 
+  try {
+    auto device_context = std::make_shared<NvidiaDeviceContext>(target_streams_length);
+
+    spdlog::debug("Initializing nvidia device context...");
     if (!device_context->Initialize()) {
       throw std::runtime_error("Failed to initialize nvidia device context");
     }
+    spdlog::debug("Nvidia device context initialized");
 
+    spdlog::debug("Initializing decoder...");
     std::unique_ptr<DecodingPipeline<AVFrame>> decoding_pipeline =
         std::make_unique<NvidiaDecodingPipeline>(
             original_stream_params.width,
@@ -60,6 +80,7 @@ UNIFEX_TERM create(UnifexEnv* env,
             original_stream_params.framerate,
             original_stream_params.bitrate,
             device_context);
+    spdlog::debug("Initialized decoder");
 
     MultiScalerInput multiscaler_input = {original_stream_params.width,
                                           original_stream_params.height,
@@ -73,10 +94,13 @@ UNIFEX_TERM create(UnifexEnv* env,
                                      target_streams[i].framerate});
     }
 
+    spdlog::debug("Initializing multiscaler");
     std::unique_ptr<MultiscalingPipeline<AVFrame>> multiscaling_pipeline =
         std::make_unique<NvidiaMultiscalingPipeline>(
             multiscaler_input, multiscaler_outputs, device_context);
+    spdlog::debug("Multiscaler initialized");
 
+    spdlog::debug("Initializing encoders...");
     std::vector<std::unique_ptr<EncodingPipeline<AVFrame>>> encoding_pipelines;
     for (unsigned int i = 0; i < target_streams_length; i++) {
 
@@ -98,6 +122,8 @@ UNIFEX_TERM create(UnifexEnv* env,
 
       encoding_pipelines.push_back(std::move(encoding_pipeline));
     }
+
+    spdlog::debug("Encoders initialized");
 
     state->transcoding_pipeline =
         std::make_unique<TranscodingPipeline<AVFrame, stream_frame>>(
@@ -122,6 +148,7 @@ UNIFEX_TERM create(UnifexEnv* env,
     ⣿⣿⣿⣶⣤⣍⣉⣛⣛⡛⠛⠛⢛⣛⣛⣛⣛⣉⣩⣭⣤⣴⣶⣿⣿⣿⣿⣿⣿⣿
     */
 
+    spdlog::debug("Initialized transcoding pipeline");
     result = create_result_ok(env, state);
 
   } catch (std::exception& e) {

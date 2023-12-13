@@ -31,6 +31,8 @@ defmodule ABRTranscoder do
 
   require Logger
 
+  alias Membrane.H264.Parser.DecoderConfigurationRecord
+
   def_input_pad :input,
     demand_mode: :auto,
     demand_unit: :buffers,
@@ -39,7 +41,7 @@ defmodule ABRTranscoder do
   def_output_pad :output,
     demand_mode: :auto,
     availability: :on_request,
-    accepted_format: %Membrane.H264.RemoteStream{}
+    accepted_format: %Membrane.H264{}
 
   def_options original_stream: [
                 spec: __MODULE__.StreamParams.t(),
@@ -60,13 +62,18 @@ defmodule ABRTranscoder do
                 """
               ],
               on_successful_init: [
-                spec: (() -> term()),
+                spec: (-> term()),
                 description:
                   "Callback that should be triggered on successful transcoder initialization"
               ],
-              on_frame_process: [
-                spec: (() -> term()),
-                description: "Callback that should be triggered afterframe processing"
+              on_frame_process_start: [
+                spec: (-> term()),
+                description:
+                  "Callback that should be triggered just before the start of frame processing"
+              ],
+              on_frame_process_end: [
+                spec: (-> term()),
+                description: "Callback that should be triggered right after the frame processing"
               ]
 
   defmodule StreamParams do
@@ -110,23 +117,31 @@ defmodule ABRTranscoder do
       field :transcoder_ref, reference() | nil, default: nil
       field :next_frames_gap, non_neg_integer(), default: 0
       field :on_successful_init, function()
-      field :on_frame_process, function()
+      field :on_frame_process_start, function()
+      field :on_frame_process_end, function()
+      field :initialized_at, non_neg_integer(), default: nil
+      field :first_frame_processed?, boolean(), default: false
+      field :always_expect_output_frame?, boolean()
+      field :expect_next_output_frame?, boolean()
+      field :input_frames, non_neg_integer(), default: 0
+      field :output_frames, non_neg_integer(), default: 0
     end
   end
 
   @impl true
   def handle_init(_ctx, opts) do
-    Logger.metadata(module: __MODULE__)
-
     :ok = verify_streams(opts)
 
-    {[], struct!(State, Map.from_struct(opts))}
+    opts
+    |> Map.from_struct()
+    |> assign_output_frames_expectations()
+    |> then(&{[], struct!(State, &1)})
   end
 
   @impl true
   def handle_stream_format(
         :input,
-        %Membrane.H264.RemoteStream{alignment: alignment, decoder_configuration_record: dcr},
+        %Membrane.H264{alignment: alignment, stream_structure: {:avc3, dcr}},
         ctx,
         state
       ) do
@@ -140,9 +155,14 @@ defmodule ABRTranscoder do
       raise "Empty decoder configuration record"
     end
 
-    {:ok, %{sps: sps, pps: pps}} = Membrane.H264.Parser.DecoderConfigurationRecord.parse(dcr)
+    %DecoderConfigurationRecord{
+      spss: spss,
+      ppss: ppss
+    } = DecoderConfigurationRecord.parse(dcr)
 
-    sps_and_pps = Enum.map_join(sps ++ pps, &(<<0, 0, 1>> <> &1))
+    sps_and_pps = Enum.map_join(spss ++ ppss, &(<<0, 0, 1>> <> &1))
+
+    start = System.monotonic_time(:millisecond)
 
     case backend.initialize_transcoder(
            backend_config,
@@ -150,6 +170,9 @@ defmodule ABRTranscoder do
            target_streams
          ) do
       {:ok, transcoder_ref} ->
+        stop = System.monotonic_time(:millisecond)
+        Logger.info("Transcoder initialized in #{stop - start}ms")
+
         state.on_successful_init.()
         backend.update_sps_and_pps(sps_and_pps, transcoder_ref)
 
@@ -158,14 +181,19 @@ defmodule ABRTranscoder do
           backend.flush(transcoder_ref)
         end)
 
-        state = %State{state | transcoder_ref: transcoder_ref}
+        state = %State{
+          state
+          | transcoder_ref: transcoder_ref,
+            initialized_at: System.monotonic_time()
+        }
 
         actions =
           state.target_streams
           |> Enum.with_index()
           |> Enum.map(fn {_stream, idx} ->
             {:stream_format,
-             {Pad.ref(:output, idx), %Membrane.H264.RemoteStream{alignment: alignment}}}
+             {Pad.ref(:output, idx),
+              %Membrane.H264{alignment: alignment, stream_structure: :annexb}}}
           end)
 
         {actions, state}
@@ -180,6 +208,14 @@ defmodule ABRTranscoder do
   def handle_end_of_stream(:input, _ctx, %State{backend: %backend{}, transcoder_ref: ref} = state) do
     case backend.flush(ref) do
       {:ok, payloads_per_stream} ->
+        for idx <- 0..(length(state.target_streams) - 1) do
+          frames = Enum.count(payloads_per_stream, &(&1.id == idx))
+
+          "target_#{idx} = #{frames}"
+        end
+        |> Enum.join(", ")
+        |> then(&Logger.info("Flushing frames: #{&1}"))
+
         actions = handle_stream_payloads(payloads_per_stream, state)
 
         eos =
@@ -213,9 +249,21 @@ defmodule ABRTranscoder do
         _context,
         %State{backend: %backend{}, transcoder_ref: ref} = state
       ) do
-    case backend.process(buffer.payload, state.next_frames_gap, ref) do
+    state.on_frame_process_start.()
+
+    state = %{state | input_frames: state.input_frames + 1}
+
+    payload = to_annex_b(buffer.payload, [])
+
+    case backend.process(payload, state.next_frames_gap, ref) do
       {:ok, payloads_per_stream} ->
-        state.on_frame_process.()
+        state = increment_output_frames(payloads_per_stream, state)
+        state = maybe_update_first_frame_processed(payloads_per_stream, state)
+
+        maybe_log_empty_payloads_warning(payloads_per_stream, state)
+        state = update_output_frame_expectations(payloads_per_stream, state)
+
+        state.on_frame_process_end.()
         actions = handle_stream_payloads(payloads_per_stream, state)
 
         state = %{state | next_frames_gap: 0}
@@ -263,4 +311,93 @@ defmodule ABRTranscoder do
 
     :ok
   end
+
+  # NOTE: first target stream has the highest framerate among all target streams
+  # thanks to verify_streams/1
+  defp assign_output_frames_expectations(
+         %{original_stream: og, target_streams: [ts | _rest]} = state
+       ) do
+    # When a first target steam has the same framerate as source we will always expect to match
+    # input to output frame in 1:1 manner. When it is lower, it is expected to be 2:1 ratio and
+    # we should expect every other frame.
+    state
+    |> Map.put(:always_expect_output_frame?, ts.framerate >= og.framerate)
+    |> Map.put(:expect_next_output_frame?, ts.framerate >= og.framerate)
+  end
+
+  defp increment_output_frames(payloads, state) do
+    first_stream_frames = Enum.count(payloads, &(&1.id == 0))
+
+    %{state | output_frames: state.output_frames + first_stream_frames}
+  end
+
+  defp maybe_update_first_frame_processed(payloads, %State{first_frame_processed?: false} = state)
+       when payloads != [] do
+    now = System.monotonic_time()
+
+    frames_offset =
+      if state.always_expect_output_frame? do
+        state.input_frames - state.output_frames
+      else
+        state.input_frames - 2 * state.output_frames
+      end
+
+    Logger.info(
+      "First frame emitted after #{System.convert_time_unit(now - state.initialized_at, :native, :millisecond)}ms. Initial frames offset = #{frames_offset}."
+    )
+
+    %State{state | first_frame_processed?: true}
+  end
+
+  defp maybe_update_first_frame_processed(_payloads, state), do: state
+
+  defp maybe_log_empty_payloads_warning(_payloads, state) when not state.first_frame_processed?,
+    do: :ok
+
+  defp maybe_log_empty_payloads_warning([], state)
+       when state.always_expect_output_frame? or
+              state.expect_next_output_frame? do
+    log_empty_payloads_warning(state)
+  end
+
+  defp maybe_log_empty_payloads_warning(_payloads, _state), do: :ok
+
+  defp update_output_frame_expectations([], state) when not state.expect_next_output_frame? do
+    %{state | expect_next_output_frame?: true}
+  end
+
+  defp update_output_frame_expectations(_payloads, state)
+       when not state.always_expect_output_frame? do
+    %{state | expect_next_output_frame?: false}
+  end
+
+  defp update_output_frame_expectations(_payloads, state), do: state
+
+  # The value below has been chosen empirically (based on xilinx transcoder).
+  # It is a maximum value that has been observed for 60FPS (source) -> 30FPS (first target)
+  # transition.
+  @max_allowed_input_output_frames_offset 45
+  defp log_empty_payloads_warning(state) do
+    output_frames =
+      if state.always_expect_output_frame? do
+        state.output_frames
+      else
+        # we are expecting every other frame so to check for the allowed offset
+        # multiply it by 2
+        state.output_frames * 2
+      end
+
+    if state.input_frames - output_frames > @max_allowed_input_output_frames_offset do
+      Logger.warning(
+        "Unexpected empty transcoder result: input_frames = #{state.input_frames}, output_frames = #{output_frames}"
+      )
+    end
+
+    :ok
+  end
+
+  defp to_annex_b(<<length::32, data::binary-size(length), rest::binary>>, acc),
+    do: to_annex_b(rest, [acc, [<<0, 0, 1>>, data]])
+
+  defp to_annex_b(<<>>, acc), do: IO.iodata_to_binary(acc)
 end

@@ -14,6 +14,14 @@ bool NvidiaDeviceContext::Initialize() {
   return true;
 }
 
+NvidiaDeviceContext::NvidiaDeviceContext(unsigned int outputs) {
+  frame_contexts.resize(outputs);
+}
+
+void NvidiaDeviceContext::PutFrameContext(unsigned int idx, AVBufferRef* frame_context) {
+  frame_contexts.at(idx) = frame_context;
+}
+
 NvidiaDeviceContext::~NvidiaDeviceContext() {
   if (device_context == nullptr) {
     return;

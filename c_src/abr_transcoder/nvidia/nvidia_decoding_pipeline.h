@@ -13,13 +13,13 @@ extern "C" {
 #include "nvidia_device_context.h"
 
 
-// The lowest H264 level supporting FHD streams up to 60FPS
+// The lowest H264 level supporting FHD streams up to 60FPS and QuickSync
 // https://en.wikipedia.org/wiki/Advanced_Video_Coding#Levels
 
 class NvidiaDecodingPipeline : public DecodingPipeline<AVFrame> {
   static constexpr int MAX_PACKETS_WITHOUT_FRAME = 100;
   static constexpr const char* DECODER_NAME = "h264_cuvid";
-  static constexpr int H264_LEVEL_42 = 42;
+  static constexpr int H264_LEVEL_52 = 52;
 public:
   NvidiaDecodingPipeline(int width, int height, int framerate, int bitrate, std::shared_ptr<NvidiaDeviceContext> device_context);
 
