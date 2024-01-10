@@ -222,6 +222,7 @@ UNIFEX_TERM process(UnifexEnv* env,
 
   for (size_t i = 0; i < stream_frames.size(); i++) {
     unifex_payload_release(stream_frames[i].payload);
+    unifex_free(stream_frames[i].payload);
   }
 
   return result;
@@ -258,6 +259,7 @@ flush(UnifexEnv* env, UnifexState* state) {
 
   for (size_t i = 0; i < stream_frames.size(); i++) {
     unifex_payload_release(stream_frames[i].payload);
+    unifex_free(stream_frames[i].payload);
   }
 
   return result;
