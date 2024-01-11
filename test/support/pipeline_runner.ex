@@ -30,7 +30,7 @@ defmodule ABRTranscoder.PipelineRunner do
         gap_size \\ Membrane.Time.milliseconds(16),
         min_inter_frame_delay \\ Membrane.Time.milliseconds(250)
       ) do
-    structure = [
+    spec = [
       child(:source, %Membrane.File.Source{location: input_file})
       |> child(:demuxer, Membrane.FLV.Demuxer)
       |> via_out(Pad.ref(:video, 0))
@@ -56,10 +56,7 @@ defmodule ABRTranscoder.PipelineRunner do
         |> child(sink_name(idx), Testing.Sink)
       end
 
-    pipeline = Testing.Pipeline.start_link_supervised!(structure: structure ++ sinks)
-    Testing.Pipeline.execute_actions(pipeline, playback: :playing)
-
-    assert_pipeline_play(pipeline)
+    pipeline = Testing.Pipeline.start_link_supervised!(spec: spec ++ sinks)
 
     for i <- 0..(Enum.count(target_streams) - 1) do
       sink = sink_name(i)

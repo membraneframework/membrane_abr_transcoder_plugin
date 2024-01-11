@@ -38,11 +38,9 @@ defmodule ABRTranscoder do
   @full_framerate 2
 
   def_input_pad :input,
-    demand_mode: :auto,
     accepted_format: %H264{alignment: :au, stream_structure: :annexb}
 
   def_output_pad :output,
-    demand_mode: :auto,
     availability: :on_request,
     accepted_format: %H264{alignment: :au, stream_structure: :annexb},
     options: [
@@ -276,7 +274,7 @@ defmodule ABRTranscoder do
   end
 
   @impl true
-  def handle_process(:input, buffer, _context, state) do
+  def handle_buffer(:input, buffer, _context, state) do
     state.telemetry_callbacks.on_frame_process_start.()
 
     frames_gap = calc_frames_gap(buffer.dts, state)
