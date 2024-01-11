@@ -3,7 +3,6 @@ Mix.install([
   :membrane_file_plugin,
   :membrane_hackney_plugin,
   :membrane_h264_plugin,
-  :membrane_realtimer_plugin,
   :membrane_mp4_plugin
 ])
 
@@ -21,7 +20,7 @@ defmodule Example do
           hackney_opts: [follow_redirect: true]
         })
         |> child(%Membrane.H264.Parser{generate_best_effort_timestamps: %{framerate: {30, 1}}})
-        |> child(:transcoder, %ABRTranscoder{backend: %ABRTranscoder.Backends.Nvidia{}}),
+        |> child(:transcoder, %ABRTranscoder{backend: ABRTranscoder.Backends.Nvidia}),
         output_spec(854, 480),
         output_spec(640, 360)
       ]

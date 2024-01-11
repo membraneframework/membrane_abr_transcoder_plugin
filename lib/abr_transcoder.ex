@@ -76,9 +76,9 @@ defmodule ABRTranscoder do
     ]
 
   def_options backend: [
-                spec: struct(),
+                spec: module() | struct(),
                 description: """
-                Struct representing a transcoder backend and its configuration
+                Module or struct representing a transcoder backend and its configuration
                 that should be used for initialization.
 
                 The available backends are `ABRTranscoder.Backends.Nvidia`
@@ -171,6 +171,9 @@ defmodule ABRTranscoder do
     opts =
       opts
       |> Map.from_struct()
+      |> Map.update!(:backend, fn backend ->
+        if is_atom(backend), do: struct!(backend), else: backend
+      end)
       |> Map.update!(:telemetry_callbacks, &Map.merge(default_telemetry_callbacks, &1))
 
     {[], struct!(State, opts)}
