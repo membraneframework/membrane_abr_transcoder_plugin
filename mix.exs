@@ -17,7 +17,6 @@ defmodule AbrTranscoder.MixProject do
 
   defp extra_compilers do
     case Mix.target() do
-      # _ -> []
       :host -> []
       target when target in [:xilinx, :nvidia] -> [:unifex, :bundlex]
     end
