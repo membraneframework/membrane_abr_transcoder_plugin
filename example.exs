@@ -1,3 +1,6 @@
+# This example downloads a video via http, downscales it to two resolutions
+# and saves outputs to files.
+
 Mix.install([
   {:abr_transcoder, path: "."},
   :membrane_file_plugin,
