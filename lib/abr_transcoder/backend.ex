@@ -1,7 +1,6 @@
 defmodule ABRTranscoder.Backend do
-  @moduledoc """
-  Base behaviour for all abr transcoder backends.
-  """
+  @moduledoc false
+  # Base behaviour for all abr transcoder backends.
 
   alias ABRTranscoder.{StreamFrame, StreamParams}
 

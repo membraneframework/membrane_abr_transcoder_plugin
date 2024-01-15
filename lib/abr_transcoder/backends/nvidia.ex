@@ -1,15 +1,18 @@
-if Mix.target() == :nvidia do
-  defmodule ABRTranscoder.Backends.Nvidia do
-    @moduledoc """
-    ABRTranscoder backend implementation utilizing Nvidia T4 GPU card.
-    """
+defmodule ABRTranscoder.Backends.Nvidia do
+  @moduledoc """
+  ABRTranscoder backend implementation utilizing Nvidia T4 GPU card.
+
+  To use it, set `MIX_TARGET` to `nvidia`.
+  """
+  use TypedStruct
+
+  typedstruct enforce: true do
+  end
+
+  if Mix.target() == :nvidia do
     @behaviour ABRTranscoder.Backend
 
     use Unifex.Loader
-    use TypedStruct
-
-    typedstruct enforce: true do
-    end
 
     @impl true
     def initialize_transcoder(

@@ -26,7 +26,9 @@ XilinxEncodingPipeline::XilinxEncodingPipeline(
   }
 
   encoder->level = H264_LEVEL_42;
-  encoder->bit_rate = bitrate;
+  if (bitrate > -1) {
+    encoder->bit_rate = bitrate;
+  }
   encoder->width = width;
   encoder->height = height;
 
@@ -43,7 +45,9 @@ XilinxEncodingPipeline::XilinxEncodingPipeline(
   // number of allowed consecutive B-frames
   av_dict_set_int(&enc_dict, "bf", max_b_frames, 0);
   // maximum bitrate allowed by the encoder
-  av_dict_set_int(&enc_dict, "max-bitrate", bitrate, 0);
+  if (bitrate > -1) {
+    av_dict_set_int(&enc_dict, "max-bitrate", bitrate, 0);
+  }
   // h264 level
   av_dict_set_int(&enc_dict, "level", H264_LEVEL_42, 0);
   // the device id onto which the encoder should be placed

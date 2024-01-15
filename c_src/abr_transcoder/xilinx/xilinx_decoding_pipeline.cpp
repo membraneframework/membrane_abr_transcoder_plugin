@@ -22,7 +22,9 @@ XilinxDecodingPipeline::XilinxDecodingPipeline(int width,
   decoder->pix_fmt = AV_PIX_FMT_YUV420P;
   decoder->profile = FF_PROFILE_H264_HIGH;
   decoder->level = H264_LEVEL_52;
-  decoder->bit_rate = bitrate;
+  if (bitrate > -1) {
+    decoder->bit_rate = bitrate;
+  }
   decoder->width = width;
   decoder->height = height;
 

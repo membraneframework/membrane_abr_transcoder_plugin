@@ -4,7 +4,6 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
   import ABRTranscoder.TestHelpers
 
   alias ABRTranscoder.PipelineRunner
-  alias ABRTranscoder.StreamParams
 
   @ms Membrane.Time.milliseconds(1)
 
@@ -30,7 +29,7 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
   end
 
   defp params_with_multiscaler_half_rate() do
-    original_stream = %StreamParams{
+    original_stream = %{
       width: 1920,
       height: 1080,
       framerate: 60,
@@ -38,25 +37,25 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
     }
 
     target_streams = [
-      %StreamParams{
+      [
         width: 1280,
         height: 720,
-        framerate: 60,
+        framerate: :full,
         bitrate: 3_000_000
-      },
-      %StreamParams{
+      ],
+      [
         width: 852,
         height: 480,
-        framerate: 30,
+        framerate: :half,
         bitrate: 3_000_000
-      }
+      ]
     ]
 
     {original_stream, target_streams}
   end
 
   defp params_with_source_half_rate() do
-    original_stream = %StreamParams{
+    original_stream = %{
       width: 1920,
       height: 1080,
       framerate: 60,
@@ -64,19 +63,19 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
     }
 
     target_streams = [
-      %StreamParams{
+      [
         width: 1280,
         height: 720,
-        framerate: 30,
+        framerate: :half,
         bitrate: 3_000_000
-      }
+      ]
     ]
 
     {original_stream, target_streams}
   end
 
   defp params_with_same_rate() do
-    original_stream = %StreamParams{
+    original_stream = %{
       width: 1920,
       height: 1080,
       framerate: 60,
@@ -84,12 +83,12 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
     }
 
     target_streams = [
-      %StreamParams{
+      [
         width: 1280,
         height: 720,
-        framerate: 60,
+        framerate: :full,
         bitrate: 3_000_000
-      }
+      ]
     ]
 
     {original_stream, target_streams}
@@ -161,15 +160,15 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
   defp run_test_scenario(ctx, parameters, opts \\ []) do
     parameters = List.wrap(parameters)
 
-    for {original_stream, target_streams} <- parameters do
+    for {_original_stream, target_streams} <- parameters do
       pipeline =
         PipelineRunner.run(
           ctx.backend,
           ctx.video_path,
-          original_stream,
           target_streams,
           ctx.gap_positions,
-          ctx.gap_size
+          ctx.gap_size,
+          1.1 * Membrane.Time.seconds(1) / 60
         )
 
       case Keyword.get(opts, :buffer_match_strategy, :match_buffers_by_gop) do
@@ -180,6 +179,8 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
             target_streams
           )
       end
+
+      Membrane.Pipeline.terminate(pipeline)
     end
   end
 
@@ -220,6 +221,7 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
   @tag gap_positions: [{1, 119}, {2, 70}, {3, 119}, {4, 99}, {5, 60}, {6, 100}]
   @tag gap_size: @gap_size_60_fps
   @tag timeout: 60_000
+  @tag :target
   test "keyframe-only continious stream", ctx do
     run_test_scenario(ctx, [
       params_with_multiscaler_half_rate(),

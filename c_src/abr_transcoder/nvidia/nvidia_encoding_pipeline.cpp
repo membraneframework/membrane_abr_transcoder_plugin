@@ -33,7 +33,9 @@ NvidiaEncodingPipeline::NvidiaEncodingPipeline(
   }
 
   encoder->level = H264_LEVEL_42;
-  encoder->bit_rate = bitrate;
+  if (bitrate > -1) {
+    encoder->bit_rate = bitrate;
+  }
   encoder->width = width;
   encoder->height = height;
 
@@ -49,7 +51,9 @@ NvidiaEncodingPipeline::NvidiaEncodingPipeline(
   // set profile to high
   av_opt_set(encoder->priv_data, "profile", "high", 0);
   // constant bitrate rate control
-  av_opt_set(encoder->priv_data, "rc", "cbr", 0);
+  if (bitrate > -1) {
+    av_opt_set(encoder->priv_data, "rc", "cbr", 0);
+  }
   // preset low latency + high quality
   av_opt_set(encoder->priv_data, "preset", "p4", 0);
   // tune for low latency

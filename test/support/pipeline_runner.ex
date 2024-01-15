@@ -6,7 +6,6 @@ defmodule ABRTranscoder.PipelineRunner do
 
   require Membrane.Pad
 
-  alias ABRTranscoder.StreamParams
   alias Membrane.Pad
   alias Membrane.Testing
 
@@ -18,20 +17,20 @@ defmodule ABRTranscoder.PipelineRunner do
   @spec run(
           struct(),
           String.t(),
-          StreamParams.t(),
-          [StreamParams.t()],
+          Keyword.t(),
           [gap_t()],
-          gap_size :: Membrane.Time.t()
+          gap_size :: Membrane.Time.t(),
+          min_inter_frame_delay :: Membrane.Time.t()
         ) :: Testing.Pipeline.t()
   def run(
         backend,
         input_file,
-        original_stream,
         target_streams,
         gap_positions \\ [],
-        gap_size \\ Membrane.Time.milliseconds(16)
+        gap_size \\ Membrane.Time.milliseconds(16),
+        min_inter_frame_delay \\ Membrane.Time.milliseconds(250)
       ) do
-    structure = [
+    spec = [
       child(:source, %Membrane.File.Source{location: input_file})
       |> child(:demuxer, Membrane.FLV.Demuxer)
       |> via_out(Pad.ref(:video, 0))
@@ -39,32 +38,25 @@ defmodule ABRTranscoder.PipelineRunner do
         gap_positions: gap_positions,
         gap_size: gap_size
       })
+      |> child({:parser, :source}, %Membrane.H264.Parser{output_stream_structure: :annexb})
       |> child(:tee, Membrane.Tee.Parallel)
       |> child(:abr_transcoder, %ABRTranscoder{
-        original_stream: original_stream,
-        target_streams: target_streams,
         backend: backend,
-        on_successful_init: fn -> :ok end,
-        on_frame_process_start: fn -> :ok end,
-        on_frame_process_end: fn -> :ok end
+        min_inter_frame_delay: min_inter_frame_delay
       }),
       get_child(:tee)
-      |> child({:parser, :source}, parser())
       |> child(:sink_source, Testing.Sink)
     ]
 
     sinks =
-      for {_stream, idx} <- Enum.with_index(target_streams) do
+      for {stream, idx} <- Enum.with_index(target_streams) do
         get_child(:abr_transcoder)
-        |> via_out(Pad.ref(:output, idx))
-        |> child({:parser, idx}, parser())
+        |> via_out(:output, options: stream)
+        |> child({:parser, idx}, Membrane.H264.Parser)
         |> child(sink_name(idx), Testing.Sink)
       end
 
-    pipeline = Testing.Pipeline.start_link_supervised!(structure: structure ++ sinks)
-    Testing.Pipeline.execute_actions(pipeline, playback: :playing)
-
-    assert_pipeline_play(pipeline)
+    pipeline = Testing.Pipeline.start_link_supervised!(spec: spec ++ sinks)
 
     for i <- 0..(Enum.count(target_streams) - 1) do
       sink = sink_name(i)
@@ -72,11 +64,5 @@ defmodule ABRTranscoder.PipelineRunner do
     end
 
     pipeline
-  end
-
-  defp parser() do
-    %Membrane.H264.Parser{
-      output_stream_structure: :avc3
-    }
   end
 end

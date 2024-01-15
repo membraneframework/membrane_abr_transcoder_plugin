@@ -89,7 +89,7 @@ index d69381aed4..405449e3b1 100644
   *                If non-NULL, *outputs is updated to contain the list of open outputs
   *                after the parsing, should be freed with avfilter_inout_free().
 + * @param hwdevice_ctx a pointer to a hw device context that should be shared among all filters
-+ *                     in the filter graph
++ *                     in the filter graph */ #define PATCH_FFMPEG_AVFILTER_GRAPH_PARSE_HWDEVICE /*
   * @return non negative on success, a negative AVERROR code on error
   */
  int avfilter_graph_parse_ptr(AVFilterGraph *graph, const char *filters,
