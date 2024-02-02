@@ -53,13 +53,12 @@ RUN apt-get update \
     && rm -rf /tmp/*
 
 # Install Nvidia's codec sdk headers used by FFmpeg custom compilation
-# NOTE: we are using the 12.0 version on purpose as otherwise FFmpeg fails to intitialize any nvidia decoder/encoder at runtime
-RUN git clone -b n12.0.16.0 --depth 1 https://git.videolan.org/git/ffmpeg/nv-codec-headers.git \
+RUN git clone -b n12.1.14.0 --depth 1 https://git.videolan.org/git/ffmpeg/nv-codec-headers.git \
     && cd nv-codec-headers && sudo make install && cd .. && rm -rf nv-codec-headers
 
 # Clone and compile FFmpeg
 RUN git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg/ \
-    && cd ffmpeg && git checkout 284d1a8a6a2b8de2d5df7555232a086e2739c3d6 && \
+    && cd ffmpeg && git checkout n6.1 && \
     ./configure \
     --enable-nonfree \
     --enable-gpl \
