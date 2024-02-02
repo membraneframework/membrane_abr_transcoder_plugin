@@ -29,18 +29,20 @@ extern "C" {
 void handle_destroy_state(UnifexEnv* env, UnifexState* state) {
   UNIFEX_UNUSED(env);
 
-  auto& execution_profiler = state->transcoding_pipeline->GetExecutionProfiler();
+  if (state->transcoding_pipeline) {
+    auto& execution_profiler = state->transcoding_pipeline->GetExecutionProfiler();
 
-  for (auto [label, summary] : execution_profiler.Summaries()) {
-    spdlog::debug(
-      "Profiler summary for {}: max_time = {}μs, min_time = {}μs, avg_time = {}μs, total_time = {}μs, measurements = {}",
-      label,
-      summary.max_time,
-      summary.min_time,
-      summary.average_time,
-      summary.total_time,
-      summary.measurements
-    );
+    for (auto [label, summary] : execution_profiler.Summaries()) {
+      spdlog::debug(
+        "Profiler summary for {}: max_time = {}μs, min_time = {}μs, avg_time = {}μs, total_time = {}μs, measurements = {}",
+        label,
+        summary.max_time,
+        summary.min_time,
+        summary.average_time,
+        summary.total_time,
+        summary.measurements
+      );
+    }
   }
 
   state->~State();
@@ -52,6 +54,7 @@ UNIFEX_TERM create(UnifexEnv* env,
                    abr_stream_params original_stream_params,
                    abr_stream_params* target_streams,
                    unsigned int target_streams_length) {
+
   if (target_streams_length > MAX_OUTPUTS || target_streams_length < 1) {
     return create_result_error(env, "invalid number of outputs");
   }

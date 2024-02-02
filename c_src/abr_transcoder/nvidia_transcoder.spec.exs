@@ -37,4 +37,4 @@ dirty :io,
 dirty :cpu,
   process: 3,
   update_sps_and_pps: 2,
-  flush: 2
+  flush: 1
