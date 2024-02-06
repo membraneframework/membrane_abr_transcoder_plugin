@@ -1,4 +1,4 @@
-defmodule ABRTranscoder do
+defmodule Membrane.ABRTranscoder do
   @moduledoc """
   Adaptive bit rate transcoder.
 
@@ -81,8 +81,8 @@ defmodule ABRTranscoder do
                 Module or struct representing a transcoder backend and its configuration
                 that should be used for initialization.
 
-                The available backends are `ABRTranscoder.Backends.Nvidia`
-                and `ABRTranscoder.Backends.U30`.
+                The available backends are `Membrane.ABRTranscoder.Backends.Nvidia`
+                and `Membrane.ABRTranscoder.Backends.U30`.
                 """
               ],
               min_inter_frame_delay: [

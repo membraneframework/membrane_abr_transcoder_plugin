@@ -1,6 +1,6 @@
-defmodule ABRTranscoder.Backends.Nvidia do
+defmodule Membrane.ABRTranscoder.Backends.Nvidia do
   @moduledoc """
-  ABRTranscoder backend implementation utilizing Nvidia T4 GPU card.
+  Membrane.ABRTranscoder backend implementation utilizing Nvidia T4 GPU card.
 
   To use it, set `MIX_TARGET` to `nvidia`.
   """
@@ -10,7 +10,7 @@ defmodule ABRTranscoder.Backends.Nvidia do
   end
 
   if Mix.target() == :nvidia do
-    @behaviour ABRTranscoder.Backend
+    @behaviour Membrane.ABRTranscoder.Backend
 
     use Unifex.Loader
 

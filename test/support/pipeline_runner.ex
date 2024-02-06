@@ -1,4 +1,4 @@
-defmodule ABRTranscoder.PipelineRunner do
+defmodule Membrane.ABRTranscoder.PipelineRunner do
   @moduledoc false
 
   import Membrane.ChildrenSpec
@@ -34,13 +34,13 @@ defmodule ABRTranscoder.PipelineRunner do
       child(:source, %Membrane.File.Source{location: input_file})
       |> child(:demuxer, Membrane.FLV.Demuxer)
       |> via_out(Pad.ref(:video, 0))
-      |> child(:frame_gap_inserter, %ABRTranscoder.FrameGapInserter{
+      |> child(:frame_gap_inserter, %Membrane.ABRTranscoder.FrameGapInserter{
         gap_positions: gap_positions,
         gap_size: gap_size
       })
       |> child({:parser, :source}, %Membrane.H264.Parser{output_stream_structure: :annexb})
       |> child(:tee, Membrane.Tee.Parallel)
-      |> child(:abr_transcoder, %ABRTranscoder{
+      |> child(:transcoder, %Membrane.ABRTranscoder{
         backend: backend,
         min_inter_frame_delay: min_inter_frame_delay
       }),
@@ -50,7 +50,7 @@ defmodule ABRTranscoder.PipelineRunner do
 
     sinks =
       for {stream, idx} <- Enum.with_index(target_streams) do
-        get_child(:abr_transcoder)
+        get_child(:transcoder)
         |> via_out(:output, options: stream)
         |> child({:parser, idx}, Membrane.H264.Parser)
         |> child(sink_name(idx), Testing.Sink)

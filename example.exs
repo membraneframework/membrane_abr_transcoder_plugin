@@ -2,7 +2,7 @@
 # and saves outputs to files.
 
 Mix.install([
-  {:abr_transcoder, path: "."},
+  {:membrane_abr_transcoder_plugin, path: "."},
   :membrane_file_plugin,
   :membrane_hackney_plugin,
   :membrane_h264_plugin,
@@ -23,7 +23,9 @@ defmodule Example do
           hackney_opts: [follow_redirect: true]
         })
         |> child(%Membrane.H264.Parser{generate_best_effort_timestamps: %{framerate: {30, 1}}})
-        |> child(:transcoder, %ABRTranscoder{backend: ABRTranscoder.Backends.Nvidia}),
+        |> child(:transcoder, %Membrane.ABRTranscoder{
+          backend: Membrane.ABRTranscoder.Backends.Nvidia
+        }),
         output_spec(854, 480),
         output_spec(640, 360)
       ]

@@ -1,4 +1,4 @@
-defmodule ABRTranscoder.TestHelpers do
+defmodule Membrane.ABRTranscoder.TestHelpers do
   @moduledoc false
   defp assert_receive_from_entity(assertion, entity, pid, pattern, timeout, failure_message) do
     quote do

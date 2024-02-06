@@ -1,0 +1,1 @@
+docker run --gpus all --runtime nvidia --rm -it -e NVIDIA_DRIVER_CAPABILITIES=video,utility,compute -v $(pwd):/app membrane_abr_transcoder_plugin /bin/bash

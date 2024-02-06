@@ -1,4 +1,4 @@
-defmodule ABRTranscoder.VideoGenerator do
+defmodule Membrane.ABRTranscoder.VideoGenerator do
   @moduledoc """
   Helper module for generating a test videos with certain durations and keyframe positions.
   """
