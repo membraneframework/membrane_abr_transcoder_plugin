@@ -1,9 +1,9 @@
-defmodule AbrTranscoder.MixProject do
+defmodule Membrane.ABRTranscoder.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :abr_transcoder,
+      app: :membrane_abr_transcoder_plugin,
       version: "0.1.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),

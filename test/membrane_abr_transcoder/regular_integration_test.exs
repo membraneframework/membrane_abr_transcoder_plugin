@@ -1,12 +1,12 @@
-defmodule ABRTranscoder.RegularIntegrationTest do
+defmodule Membrane.ABRTranscoder.RegularIntegrationTest do
   use ExUnit.Case, async: false
 
-  import ABRTranscoder.TestHelpers
-  import ABRTranscoder.PipelineRunner, only: [sink_name: 1]
+  import Membrane.ABRTranscoder.TestHelpers
+  import Membrane.ABRTranscoder.PipelineRunner, only: [sink_name: 1]
 
   require Membrane.Pad
 
-  alias ABRTranscoder.PipelineRunner
+  alias Membrane.ABRTranscoder.PipelineRunner
 
   defp assert_streams_ended(pipeline, target_streams) do
     assert_receive_end_of_stream(pipeline, :sink_source)
@@ -24,8 +24,8 @@ defmodule ABRTranscoder.RegularIntegrationTest do
   @moduletag :integration
 
   @backend (case Mix.target() do
-              :xilinx -> struct!(ABRTranscoder.Backends.U30, device_id: 0)
-              :nvidia -> struct!(ABRTranscoder.Backends.Nvidia, [])
+              :xilinx -> struct!(Membrane.ABRTranscoder.Backends.U30, device_id: 0)
+              :nvidia -> struct!(Membrane.ABRTranscoder.Backends.Nvidia, [])
             end)
 
   setup ctx do
@@ -35,7 +35,7 @@ defmodule ABRTranscoder.RegularIntegrationTest do
       |> Keyword.take([:duration, :keyframe_positions, :framerate, :bitrate])
       |> Keyword.put(:base_path, "/tmp")
 
-    {:ok, video_path} = ABRTranscoder.VideoGenerator.generate_video(options)
+    {:ok, video_path} = Membrane.ABRTranscoder.VideoGenerator.generate_video(options)
 
     [video_path: video_path, backend: @backend]
   end

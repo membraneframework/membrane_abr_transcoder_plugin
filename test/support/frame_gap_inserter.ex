@@ -1,4 +1,4 @@
-defmodule ABRTranscoder.FrameGapInserter do
+defmodule Membrane.ABRTranscoder.FrameGapInserter do
   @moduledoc """
   Membrane filter used for inserting timestamps gap at specified buffer positions.
 

@@ -1,8 +1,8 @@
-defmodule ABRTranscoder.Backend do
+defmodule Membrane.ABRTranscoder.Backend do
   @moduledoc false
   # Base behaviour for all abr transcoder backends.
 
-  alias ABRTranscoder.{StreamFrame, StreamParams}
+  alias Membrane.ABRTranscoder.{StreamFrame, StreamParams}
 
   @doc """
   A callback initializing a native instance of transcoder.

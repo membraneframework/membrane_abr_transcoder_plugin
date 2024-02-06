@@ -1,9 +1,9 @@
-defmodule ABRTranscoder.FrameDroppingIntegrationTest do
+defmodule Membrane.ABRTranscoder.FrameDroppingIntegrationTest do
   use ExUnit.Case, async: false
 
-  import ABRTranscoder.TestHelpers
+  import Membrane.ABRTranscoder.TestHelpers
 
-  alias ABRTranscoder.PipelineRunner
+  alias Membrane.ABRTranscoder.PipelineRunner
 
   @ms Membrane.Time.milliseconds(1)
 
@@ -12,8 +12,8 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
   @moduletag :integration
 
   @backend (case Mix.target() do
-              :xilinx -> struct!(ABRTranscoder.Backends.U30, device_id: 0)
-              :nvidia -> struct!(ABRTranscoder.Backends.Nvidia, [])
+              :xilinx -> struct!(Membrane.ABRTranscoder.Backends.U30, device_id: 0)
+              :nvidia -> struct!(Membrane.ABRTranscoder.Backends.Nvidia, [])
             end)
 
   setup ctx do
@@ -23,7 +23,7 @@ defmodule ABRTranscoder.FrameDroppingIntegrationTest do
       |> Keyword.take([:duration, :keyframe_positions, :framerate, :bitrate])
       |> Keyword.put(:base_path, ctx.tmp_dir)
 
-    {:ok, video_path} = ABRTranscoder.VideoGenerator.generate_video(options)
+    {:ok, video_path} = Membrane.ABRTranscoder.VideoGenerator.generate_video(options)
 
     [video_path: video_path, backend: @backend]
   end

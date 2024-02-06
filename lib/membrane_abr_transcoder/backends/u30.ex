@@ -1,6 +1,6 @@
-defmodule ABRTranscoder.Backends.U30 do
+defmodule Membrane.ABRTranscoder.Backends.U30 do
   @moduledoc """
-  ABRTranscoder backend implementation utilizing Xilinx U30 media accelerator cards.
+  Membrane.ABRTranscoder backend implementation utilizing Xilinx U30 media accelerator cards.
 
   To use it, set `MIX_TARGET` to `xilinx`.
   """
@@ -18,7 +18,7 @@ defmodule ABRTranscoder.Backends.U30 do
   end
 
   if Mix.target() == :xilinx do
-    @behaviour ABRTranscoder.Backend
+    @behaviour Membrane.ABRTranscoder.Backend
 
     use Unifex.Loader
 

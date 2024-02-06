@@ -1,0 +1,1 @@
+docker build . -t membrane_abr_transcoder_plugin
