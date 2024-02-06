@@ -1,16 +1,28 @@
 defmodule Membrane.ABRTranscoder.MixProject do
   use Mix.Project
 
+  @github_url "https://github.com/membraneframework/membrane_abr_transcoder_plugin"
+  @version "0.1.0"
+
   def project do
     [
       app: :membrane_abr_transcoder_plugin,
-      version: "0.1.0",
-      elixir: "~> 1.15",
+      version: @version,
+      elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       compilers: extra_compilers() ++ Mix.compilers(),
       deps: deps(),
       dialyzer: dialyzer(),
+
+      # hex
+      package: package(),
+      description: "Membrane ABR Transcoder plugin",
+
+      # docs
+      name: "Membrane ABR Transcoder plugin",
+      source_url: @github_url,
+      homepage_url: "https://membrane.stream",
       docs: docs()
     ]
   end
@@ -63,7 +75,32 @@ defmodule Membrane.ABRTranscoder.MixProject do
     [
       main: "readme",
       extras: ["README.md", "LICENSE"],
+      nest_modules_by_prefix: [
+        Membrane.ABRTranscoder
+      ],
+      source_ref: "v#{@version}",
       formatters: ["html"]
+    ]
+  end
+
+  defp package do
+    [
+      maintainers: ["Membrane Team"],
+      licenses: ["Apache-2.0"],
+      links: %{
+        "GitHub" => @github_url,
+        "Membrane Framework Homepage" => "https://membraneframework.org"
+      },
+      files: [
+        "lib",
+        "c_src",
+        "scripts",
+        "mix.exs",
+        "README*",
+        "LICENSE*",
+        ".formatter.exs",
+        "bundlex.exs"
+      ]
     ]
   end
 end
