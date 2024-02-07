@@ -23,11 +23,6 @@ defmodule Membrane.ABRTranscoder.RegularIntegrationTest do
 
   @moduletag :integration
 
-  @backend (case Mix.target() do
-              :xilinx -> struct!(Membrane.ABRTranscoder.Backends.U30, device_id: 0)
-              :nvidia -> struct!(Membrane.ABRTranscoder.Backends.Nvidia, [])
-            end)
-
   setup ctx do
     options =
       ctx
@@ -37,7 +32,13 @@ defmodule Membrane.ABRTranscoder.RegularIntegrationTest do
 
     {:ok, video_path} = Membrane.ABRTranscoder.VideoGenerator.generate_video(options)
 
-    [video_path: video_path, backend: @backend]
+    backend =
+      case Mix.target() do
+        :xilinx -> struct!(Membrane.ABRTranscoder.Backends.U30, device_id: 0)
+        :nvidia -> struct!(Membrane.ABRTranscoder.Backends.Nvidia, [])
+      end
+
+    [video_path: video_path, backend: backend]
   end
 
   @tag :tmp_dir

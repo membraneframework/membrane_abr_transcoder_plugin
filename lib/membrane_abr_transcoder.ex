@@ -97,9 +97,9 @@ defmodule Membrane.ABRTranscoder do
               ],
               telemetry_callbacks: [
                 spec: %{
-                  on_successful_init: (() -> term()),
-                  on_frame_process_start: (() -> term()),
-                  on_frame_process_end: (() -> term())
+                  on_successful_init: (-> term()),
+                  on_frame_process_start: (-> term()),
+                  on_frame_process_end: (-> term())
                 },
                 default: %{},
                 description: """
