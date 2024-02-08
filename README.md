@@ -32,6 +32,10 @@ Once you have the environment set up, you should add the transcoder to dependenc
 
 The `example.exs` script shows how to transcode a video file to multiple resolutions. To run it, type `elixir example.exs`.
 
+## Sponsors
+
+This plugin is sponsored by [VStream](https://vstream.com/).
+
 ## Copyright and License
 
 Copyright 2020, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=membrane_abr_transcoder_plugin)
