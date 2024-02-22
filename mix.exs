@@ -2,7 +2,7 @@ defmodule Membrane.ABRTranscoder.MixProject do
   use Mix.Project
 
   @github_url "https://github.com/membraneframework/membrane_abr_transcoder_plugin"
-  @version "0.1.0"
+  @version "0.1.1"
 
   def project do
     [

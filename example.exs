@@ -2,7 +2,7 @@
 # and saves outputs to files.
 
 Mix.install([
-  {:membrane_abr_transcoder_plugin, path: "."},
+  :membrane_abr_transcoder_plugin,
   :membrane_file_plugin,
   :membrane_hackney_plugin,
   :membrane_h264_plugin,
@@ -11,10 +11,12 @@ Mix.install([
 
 defmodule Example do
   import Membrane.ChildrenSpec
-  alias Membrane.RCPipeline
+  require Membrane.RCPipeline, as: RCPipeline
 
   def run() do
     pipeline = RCPipeline.start_link!()
+
+    RCPipeline.subscribe(pipeline, _any)
 
     RCPipeline.exec_actions(pipeline,
       spec: [
@@ -30,6 +32,10 @@ defmodule Example do
         output_spec(640, 360)
       ]
     )
+
+    RCPipeline.await_end_of_stream(pipeline, {:sink, 360})
+    RCPipeline.await_end_of_stream(pipeline, {:sink, 480})
+    RCPipeline.terminate(pipeline)
   end
 
   defp output_spec(width, height) do
@@ -37,9 +43,8 @@ defmodule Example do
     |> via_out(:output, options: [width: width, height: height])
     |> child(%Membrane.H264.Parser{output_stream_structure: :avc1})
     |> child(Membrane.MP4.Muxer.ISOM)
-    |> child(%Membrane.File.Sink{location: "out#{height}p.mp4"})
+    |> child({:sink, height}, %Membrane.File.Sink{location: "out#{height}p.mp4"})
   end
 end
 
 Example.run()
-Process.sleep(:infinity)
