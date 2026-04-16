@@ -2,7 +2,7 @@ defmodule Membrane.ABRTranscoder.MixProject do
   use Mix.Project
 
   @github_url "https://github.com/membraneframework/membrane_abr_transcoder_plugin"
-  @version "0.1.1"
+  @version "0.1.2"
 
   def project do
     [
@@ -17,13 +17,15 @@ defmodule Membrane.ABRTranscoder.MixProject do
 
       # hex
       package: package(),
-      description: "Membrane ABR Transcoder plugin",
+      description:
+        "H.264 ABR transcoder supporting multi-resolution scaling and hardware acceleration.",
 
       # docs
       name: "Membrane ABR Transcoder plugin",
       source_url: @github_url,
       homepage_url: "https://membrane.stream",
-      docs: docs()
+      docs: docs(),
+      aliases: [docs: ["docs", &prepend_llms_links/1]]
     ]
   end
 
@@ -48,7 +50,7 @@ defmodule Membrane.ABRTranscoder.MixProject do
       {:typed_struct, "~> 0.3", runtime: false},
       {:credo, "~> 1.4", only: :dev, runtime: false},
       {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.40", only: :dev, runtime: false},
 
       # test depenencies
       {:membrane_h264_plugin, "~> 0.9.0", only: :test},
@@ -78,8 +80,7 @@ defmodule Membrane.ABRTranscoder.MixProject do
       nest_modules_by_prefix: [
         Membrane.ABRTranscoder
       ],
-      source_ref: "v#{@version}",
-      formatters: ["html"]
+      source_ref: "v#{@version}"
     ]
   end
 
@@ -102,5 +103,17 @@ defmodule Membrane.ABRTranscoder.MixProject do
         "bundlex.exs"
       ]
     ]
+  end
+
+  defp prepend_llms_links(_) do
+    path = "doc/llms.txt"
+
+    if File.exists?(path) do
+      existing = File.read!(path)
+
+      header = "- [Membrane Core](https://hexdocs.pm/membrane_core/llms.txt)\n\n"
+
+      File.write!(path, header <> existing)
+    end
   end
 end
