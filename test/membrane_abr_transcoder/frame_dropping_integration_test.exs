@@ -123,7 +123,7 @@ defmodule Membrane.ABRTranscoder.FrameDroppingIntegrationTest do
   defp drain_sink_buffers(pipeline, sink_name, acc \\ []) do
     receive do
       sink_buffer_match(^pipeline, ^sink_name, buffer) ->
-        buffer = %Membrane.Buffer{buffer | payload: <<>>}
+        buffer = %{buffer | payload: <<>>}
         drain_sink_buffers(pipeline, sink_name, [buffer | acc])
 
       sink_eos_match(^pipeline, ^sink_name) ->

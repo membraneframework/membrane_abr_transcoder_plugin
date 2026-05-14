@@ -228,7 +228,7 @@ defmodule Membrane.ABRTranscoder do
           backend.flush(transcoder_ref)
         end)
 
-        state = %State{
+        state = %{
           state
           | transcoder_ref: transcoder_ref,
             initialized_at: System.monotonic_time()

@@ -50,7 +50,7 @@ defmodule Membrane.ABRTranscoder.FrameGapInserter do
         nil -> offset
       end
 
-    buffer = %Membrane.Buffer{buffer | dts: buffer.dts + offset, pts: buffer.pts + offset}
+    buffer = %{buffer | dts: buffer.dts + offset, pts: buffer.pts + offset}
 
     state =
       state

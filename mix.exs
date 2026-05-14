@@ -2,7 +2,7 @@ defmodule Membrane.ABRTranscoder.MixProject do
   use Mix.Project
 
   @github_url "https://github.com/membraneframework/membrane_abr_transcoder_plugin"
-  @version "0.1.1"
+  @version "0.1.2"
 
   def project do
     [
@@ -46,9 +46,9 @@ defmodule Membrane.ABRTranscoder.MixProject do
 
       # dev dependencies
       {:typed_struct, "~> 0.3", runtime: false},
-      {:credo, "~> 1.4", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.1", only: :dev, runtime: false},
-      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
+      {:credo, ">= 0.0.0", only: :dev, runtime: false},
+      {:dialyxir, ">= 0.0.0", only: :dev, runtime: false},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
 
       # test depenencies
       {:membrane_h264_plugin, "~> 0.9.0", only: :test},
@@ -65,6 +65,7 @@ defmodule Membrane.ABRTranscoder.MixProject do
 
     if System.get_env("CI") == "true" do
       # Store PLTs in cacheable directory for CI
+      File.mkdir_p!(Path.join([__DIR__, "priv", "plts"]))
       [plt_local_path: "priv/plts", plt_core_path: "priv/plts"] ++ opts
     else
       opts
