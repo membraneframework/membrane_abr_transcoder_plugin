@@ -25,7 +25,7 @@ In the container, you can run an example pipeline with `elixir example.exs`.
 Once you have the environment set up, you should add the transcoder to dependencies:
 
 ```elixir
-{:membrane_abr_transcoder_plugin, "~> 0.1.2"}
+{:membrane_abr_transcoder_plugin, "~> 0.1.3"}
 ```
 
 ## Usage
