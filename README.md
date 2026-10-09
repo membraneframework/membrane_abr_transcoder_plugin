@@ -1,8 +1,9 @@
 # Membrane ABR Transcoder plugin
 
+[![Star Membrane on GitHub ★](https://img.shields.io/github/stars/membraneframework/membrane_core?style=flat&logo=github&label=Star%20Membrane%20on%20GitHub%20%E2%98%85&color=blue)](https://github.com/membraneframework/membrane_core)
 [![Hex.pm](https://img.shields.io/hexpm/v/membrane_abr_transcoder_plugin.svg)](https://hex.pm/packages/membrane_abr_transcoder_plugin)
 [![API Docs](https://img.shields.io/badge/api-docs-yellow.svg?style=flat)](https://hexdocs.pm/membrane_abr_transcoder_plugin)
-[![CircleCI](https://circleci.com/gh/membraneframework/membrane_abr_transcoder_plugin.svg?style=svg)](https://circleci.com/gh/membraneframework/membrane_abr_transcoder_plugin)
+[![CI](https://github.com/membraneframework/membrane_abr_transcoder_plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/membraneframework/membrane_abr_transcoder_plugin/actions/workflows/ci.yml)
 
 This plugin provides an ABR (adaptive bitrate) transcoder, that accepts an h.264 video and outputs multiple variants of it with different qualities.
 The transcoder supports two backends: Nvidia and Xilinx. Using the Nvidia backend is recommended, as it has proven to be more stable.
