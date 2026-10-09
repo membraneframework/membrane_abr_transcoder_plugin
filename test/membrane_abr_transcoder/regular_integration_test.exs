@@ -4,8 +4,6 @@ defmodule Membrane.ABRTranscoder.RegularIntegrationTest do
   import Membrane.ABRTranscoder.TestHelpers
   import Membrane.ABRTranscoder.PipelineRunner, only: [sink_name: 1]
 
-  require Membrane.Pad
-
   alias Membrane.ABRTranscoder.PipelineRunner
 
   defp assert_streams_ended(pipeline, target_streams) do
