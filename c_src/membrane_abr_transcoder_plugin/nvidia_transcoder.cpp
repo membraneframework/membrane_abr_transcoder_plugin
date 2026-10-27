@@ -206,11 +206,11 @@ UNIFEX_TERM process(UnifexEnv* env,
 
   std::vector<stream_frame> stream_frames;
 
-  if (frames_gap > 0) {
-    state->transcoding_pipeline->OnFrameGap((uint32_t)frames_gap);
-  }
-
   try {
+    if (frames_gap > 0) {
+      state->transcoding_pipeline->OnFrameGap((uint32_t)frames_gap);
+    }
+
     stream_frames = state->transcoding_pipeline->Process(
         data,
         data_size,
