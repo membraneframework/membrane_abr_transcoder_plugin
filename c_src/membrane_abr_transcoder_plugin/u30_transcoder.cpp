@@ -128,8 +128,15 @@ UNIFEX_TERM create(UnifexEnv* env,
 }
 
 UNIFEX_TERM update_sps_and_pps(UnifexEnv* env,
-                   UnifexPayload* sps_and_pps, UnifexState* state) {
-  state->transcoding_pipeline->OnStreamParameters(sps_and_pps->data, sps_and_pps->size);
+                               UnifexPayload* sps_and_pps,
+                               UnifexState* state) {
+  // C++ exceptions must not cross the NIF boundary
+  try {
+    state->transcoding_pipeline->OnStreamParameters(sps_and_pps->data,
+                                                    sps_and_pps->size);
+  } catch (const std::exception& e) {
+    return update_sps_and_pps_result_error(env, e.what());
+  }
 
   return update_sps_and_pps_result_ok(env);
 }
